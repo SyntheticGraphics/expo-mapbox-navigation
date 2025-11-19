@@ -67,7 +67,7 @@ android {
 
   namespace "expo.modules.mapboxnavigation"
   defaultConfig {
-    minSdkVersion safeExtGet("minSdkVersion", 23)
+    minSdkVersion safeExtGet("minSdkVersion", 21)
     targetSdkVersion safeExtGet("targetSdkVersion", 34)
     versionCode 1
     versionName "0.1.0"
@@ -88,11 +88,19 @@ repositories {
 
 dependencies {
   def lifecycle_version = "2.9.3"
-  implementation project(':expo-modules-core')
-  implementation("com.mapbox.navigationcore:android-ndk27:3.11.0")
-  implementation ("com.mapbox.navigationcore:ui-components-ndk27:3.11.0")
-  implementation "com.mapbox.navigationcore:android-auto-components:3.17.0-beta.1"
+  def mapbox_navigation_version = "2.17.0"
+  implementation(platform("com.mapbox.navigation:bom:$mapbox_navigation_version"))
+
+  // Para la navegación en el teléfono
+  implementation("com.mapbox.navigation:android")
+
+  // Para la integración con Android Auto
+  implementation("com.mapbox.navigation:android-auto")
+
+  // 3. Añade la dependencia de la librería de Android for Cars
+  implementation "androidx.car.app:app:1.4.0" // Revisa siempre la última versión estable
+
+  // Dependencias que ya tenías y que probablemente sigas necesitando
   implementation "com.google.android.gms:play-services-location:21.0.1"
   implementation "androidx.constraintlayout:constraintlayout:2.2.0-alpha13"
-  implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_version"
 }
