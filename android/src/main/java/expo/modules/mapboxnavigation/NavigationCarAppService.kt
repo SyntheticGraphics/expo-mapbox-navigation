@@ -1,5 +1,4 @@
-// NavigationCarAppService.kt
-package com.youssefhenna.expo.mapbox.navigation // Asegúrate de que el package sea el correcto
+package expo.modules.mapboxnavigation
 
 import androidx.car.app.CarAppService
 import androidx.car.app.Session

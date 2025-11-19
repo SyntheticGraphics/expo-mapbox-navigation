@@ -1,5 +1,4 @@
-// NavigationSession.kt
-package com.youssefhenna.expo.mapbox.navigation
+package expo.modules.mapboxnavigation
 
 import android.content.Intent
 import androidx.car.app.Screen

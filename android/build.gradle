@@ -80,6 +80,15 @@ android {
       withSourcesJar()
     }
   }
+  packagingOptions {
+    resources {
+      excludes += setOf(
+        "META-INF/DEPENDENCIES",
+        "META-INF/INDEX.LIST",
+        "dash-sdk.properties"
+      )
+    }
+  }
 }
 
 repositories {
