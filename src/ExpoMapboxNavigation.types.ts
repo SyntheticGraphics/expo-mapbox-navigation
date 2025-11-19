@@ -7,6 +7,12 @@ type ProgressEvent = {
   distanceTraveled: number;
   durationRemaining: number;
   fractionTraveled: number;
+  currentLeg: {
+    legIndex: number;
+    legDistanceRemaining: number;
+    legDurationRemaining: number;
+    legFractionTraveled: number;
+  };
 };
 
 type Route = {

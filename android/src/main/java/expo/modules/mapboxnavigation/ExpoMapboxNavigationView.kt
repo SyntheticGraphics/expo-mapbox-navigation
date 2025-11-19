@@ -131,6 +131,7 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
     private val onRouteProgressChanged by EventDispatcher()
     private val onCancelNavigation by EventDispatcher()
     private val onWaypointArrival by EventDispatcher()
+    private val onNextRouteLegStart by EventDispatcher()
     private val onFinalDestinationArrival by EventDispatcher()
     private val onRouteChanged by EventDispatcher()
     private val onUserOffRoute by EventDispatcher()
@@ -167,14 +168,6 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
     private val tripProgressTimeRemainingTextView = createCenteredTextView()
     private val tripProgressDistanceRemainingTextView = createCenteredTextView()
     private val tripProgressArrivalTimeTextView = createCenteredTextView()
-    private val tripProgressView =
-            createTripProgressView(
-                    id = tripProgressViewId,
-                    parent = parentConstraintLayout,
-                    tripProgressTimeRemainingTextView = tripProgressTimeRemainingTextView,
-                    tripProgressDistanceRemainingTextView = tripProgressDistanceRemainingTextView,
-                    tripProgressArrivalTimeTextView = tripProgressArrivalTimeTextView
-            )
 
     private val soundButtonId = 4
     private val soundButton =
@@ -199,21 +192,13 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
                 navigationCamera.requestNavigationCameraToFollowing()
             }
 
-    private val cancelButtonId = 7
-    private val cancelButton =
-            createCancelButton(cancelButtonId, parentConstraintLayout) {
-                onCancelNavigation(mapOf())
-            }
-
     private val parentConstraintSet =
             createAndApplyConstraintSet(
                     mapViewId = mapViewId,
                     maneuverViewId = maneuverViewId,
-                    tripProgressViewId = tripProgressViewId,
                     soundButtonId = soundButtonId,
                     overviewButtonId = overviewButtonId,
                     recenterButtonId = recenterButtonId,
-                    cancelButtonId = cancelButtonId,
                     constraintLayout = parentConstraintLayout
             )
 
@@ -390,13 +375,25 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
                                 formatter.getEstimatedTimeToArrival(update.estimatedTimeToArrival)
                     }
 
+                    val currentLegProgress = routeProgress.currentLegProgress
+
+                        val legProgressData = routeProgress.currentLegProgress?.let {
+                                mapOf(
+                                "legIndex" to it.legIndex,
+                                "legDistanceRemaining" to it.distanceRemaining,
+                                "legDurationRemaining" to it.durationRemaining,
+                                "legFractionTraveled" to it.fractionTraveled
+                                )
+                        } ?: mapOf()
+
                     // Send progress event
                     this@ExpoMapboxNavigationView.onRouteProgressChanged(
                             mapOf(
                                     "distanceRemaining" to routeProgress.distanceRemaining,
                                     "distanceTraveled" to routeProgress.distanceTraveled,
                                     "durationRemaining" to routeProgress.durationRemaining,
-                                    "fractionTraveled" to routeProgress.fractionTraveled
+                                    "fractionTraveled" to routeProgress.fractionTraveled,
+                                    "currentLeg" to legProgressData
                             )
                     )
                 }
@@ -430,7 +427,19 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
                             )
                     )
                 }
-                override fun onNextRouteLegStart(routeLegProgress: RouteLegProgress) {}
+                override fun onNextRouteLegStart(routeLegProgress: RouteLegProgress) {
+                        val legIndex = routeLegProgress.legIndex
+
+                        val legProgressMap = mapOf(
+                                "distanceRemaining" to routeLegProgress.distanceRemaining,
+                                "distanceTraveled" to routeLegProgress.distanceTraveled,
+                                "durationRemaining" to routeLegProgress.durationRemaining,
+                                "fractionTraveled" to routeLegProgress.fractionTraveled,
+                                "legIndex" to legIndex
+                        )
+                        
+                        this@ExpoMapboxNavigationView.onNextRouteLegStart(legProgressMap)
+                }
                 override fun onFinalDestinationArrival(routeProgress: RouteProgress) {
                     onFinalDestinationArrival(mapOf())
                 }
@@ -500,51 +509,6 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
         return TextView(context).apply { setGravity(Gravity.CENTER) }
     }
 
-    private fun createTripProgressView(
-            id: Int,
-            parent: ViewGroup,
-            tripProgressTimeRemainingTextView: TextView,
-            tripProgressDistanceRemainingTextView: TextView,
-            tripProgressArrivalTimeTextView: TextView
-    ): LinearLayout {
-        return LinearLayout(context).apply {
-            setId(id)
-            parent.addView(this)
-            setOrientation(LinearLayout.VERTICAL)
-            setBackgroundColor(Color.WHITE)
-            setPadding(
-                    (5 * PIXEL_DENSITY).toInt(),
-                    (5 * PIXEL_DENSITY).toInt(),
-                    (5 * PIXEL_DENSITY).toInt(),
-                    (5 * PIXEL_DENSITY).toInt()
-            )
-
-            addView(
-                    tripProgressTimeRemainingTextView,
-                    LayoutParams.MATCH_PARENT,
-                    (40 * PIXEL_DENSITY).toInt()
-            )
-
-            val bottomContainer =
-                    LinearLayout(context).apply {
-                        setOrientation(LinearLayout.HORIZONTAL)
-                        setGravity(Gravity.CENTER)
-                        addView(
-                                tripProgressDistanceRemainingTextView,
-                                (60 * PIXEL_DENSITY).toInt(),
-                                (20 * PIXEL_DENSITY).toInt()
-                        )
-                        addView(
-                                tripProgressArrivalTimeTextView,
-                                (60 * PIXEL_DENSITY).toInt(),
-                                (20 * PIXEL_DENSITY).toInt()
-                        )
-                    }
-
-            addView(bottomContainer, LayoutParams.MATCH_PARENT, (20 * PIXEL_DENSITY).toInt())
-        }
-    }
-
     private fun createSoundButton(
             id: Int,
             parent: ViewGroup,
@@ -588,34 +552,18 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
         }
     }
 
-    private fun createCancelButton(
-            id: Int,
-            parent: ViewGroup,
-            onClick: (MapboxSoundButton) -> Unit
-    ): MapboxSoundButton {
-        return MapboxSoundButton(context).apply {
-            setId(id)
-            parent.addView(this)
-            findViewById<ImageView>(com.mapbox.navigation.ui.components.R.id.buttonIcon)
-                    .setImageResource(R.drawable.icon_x)
-            setOnClickListener { onClick(this) }
-        }
-    }
-
     private fun createAndApplyConstraintSet(
             mapViewId: Int,
             maneuverViewId: Int,
-            tripProgressViewId: Int,
             soundButtonId: Int,
             overviewButtonId: Int,
             recenterButtonId: Int,
-            cancelButtonId: Int,
             constraintLayout: ConstraintLayout
     ): ConstraintSet {
         return ConstraintSet().apply {
             // Add MapView constraints
             connect(mapViewId, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP)
-            connect(mapViewId, ConstraintSet.BOTTOM, tripProgressViewId, ConstraintSet.TOP)
+            connect(mapViewId, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM)
             connect(mapViewId, ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START)
             connect(mapViewId, ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END)
 
@@ -642,28 +590,6 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
                     (4 * PIXEL_DENSITY).toInt()
             )
             constrainHeight(maneuverViewId, ConstraintSet.WRAP_CONTENT)
-
-            // Add TripProgressView constraints
-            connect(
-                    tripProgressViewId,
-                    ConstraintSet.BOTTOM,
-                    ConstraintSet.PARENT_ID,
-                    ConstraintSet.BOTTOM
-            )
-            connect(
-                    tripProgressViewId,
-                    ConstraintSet.START,
-                    ConstraintSet.PARENT_ID,
-                    ConstraintSet.START
-            )
-            connect(
-                    tripProgressViewId,
-                    ConstraintSet.END,
-                    ConstraintSet.PARENT_ID,
-                    ConstraintSet.END
-            )
-            constrainMinHeight(tripProgressViewId, (80 * PIXEL_DENSITY).toInt())
-            constrainWidth(tripProgressViewId, ConstraintSet.MATCH_CONSTRAINT)
 
             // Add SoundButton constraints
             connect(
@@ -718,19 +644,6 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
             )
             constrainWidth(recenterButtonId, ConstraintSet.WRAP_CONTENT)
             constrainHeight(recenterButtonId, ConstraintSet.WRAP_CONTENT)
-
-            // Add CancelButton constraints
-            connect(cancelButtonId, ConstraintSet.BOTTOM, tripProgressViewId, ConstraintSet.BOTTOM)
-            connect(cancelButtonId, ConstraintSet.TOP, tripProgressViewId, ConstraintSet.TOP)
-            connect(
-                    cancelButtonId,
-                    ConstraintSet.END,
-                    ConstraintSet.PARENT_ID,
-                    ConstraintSet.END,
-                    (16 * PIXEL_DENSITY).toInt()
-            )
-            constrainWidth(cancelButtonId, ConstraintSet.WRAP_CONTENT)
-            constrainHeight(cancelButtonId, ConstraintSet.WRAP_CONTENT)
 
             applyTo(constraintLayout)
         }

@@ -67,7 +67,7 @@ android {
 
   namespace "expo.modules.mapboxnavigation"
   defaultConfig {
-    minSdkVersion safeExtGet("minSdkVersion", 21)
+    minSdkVersion safeExtGet("minSdkVersion", 23)
     targetSdkVersion safeExtGet("targetSdkVersion", 34)
     versionCode 1
     versionName "0.1.0"
@@ -91,6 +91,7 @@ dependencies {
   implementation project(':expo-modules-core')
   implementation("com.mapbox.navigationcore:android-ndk27:3.11.0")
   implementation ("com.mapbox.navigationcore:ui-components-ndk27:3.11.0")
+  implementation "com.mapbox.navigationcore:android-auto-components:3.17.0-beta.1"
   implementation "com.google.android.gms:play-services-location:21.0.1"
   implementation "androidx.constraintlayout:constraintlayout:2.2.0-alpha13"
   implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_version"

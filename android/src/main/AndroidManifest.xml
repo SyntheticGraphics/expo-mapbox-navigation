@@ -1,2 +1,23 @@
-<manifest>
+<!-- AndroidManifest.xml -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+    
+        <!-- ===== NUEVO: SERVICIO PARA ANDROID AUTO ===== -->
+        <service
+            android:name=".NavigationCarAppService"
+            android:exported="true"
+            android:label="TuAppEnElCoche">
+            <intent-filter>
+                <action android:name="androidx.car.app.CarAppService" />
+                <category android:name="androidx.car.app.category.NAVIGATION" />
+            </intent-filter>
+        </service>
+
+        <!-- ===== NUEVO: METADATOS DE ANDROID AUTO ===== -->
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
+
+    </application>
 </manifest>

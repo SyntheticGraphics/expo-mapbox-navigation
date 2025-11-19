@@ -5,6 +5,7 @@ import MapboxNavigationUIKit
 import MapboxDirections
 import Combine
 
+class CustomBottomBarViewController: ContainerViewController {}
 
 class ExpoMapboxNavigationView: ExpoView {
     private let onRouteProgressChanged = EventDispatcher()
@@ -92,6 +93,11 @@ class ExpoMapboxNavigationViewController: UIViewController {
                     "distanceTraveled": progressState!.routeProgress.distanceTraveled,
                     "durationRemaining": progressState!.routeProgress.durationRemaining,
                     "fractionTraveled": progressState!.routeProgress.fractionTraveled,
+                    "legDistanceRemaining": progressState!.routeProgress.currentLegProgress.distanceRemaining,
+                    "legDurationRemaining": progressState!.routeProgress.currentLegProgress.durationRemaining,
+                    "legFractionTraveled": progressState!.routeProgress.currentLegProgress.fractionTraveled,
+                    "legIndex": progressState!.routeProgress.legIndex,
+                    "currentLeg": progressState!.routeProgress.currentLegProgress,
                 ])
             }
         }
@@ -390,9 +396,7 @@ class ExpoMapboxNavigationViewController: UIViewController {
 
         let topBanner = TopBannerViewController()
         topBanner.instructionsBannerView.distanceFormatter.locale = currentLocale
-        let bottomBanner = BottomBannerViewController()
-        bottomBanner.distanceFormatter.locale = currentLocale
-        bottomBanner.dateFormatter.locale = currentLocale
+        let bottomBanner = CustomBottomBarViewController()
 
         let navigationOptions = NavigationOptions(
             mapboxNavigation: self.mapboxNavigation!,
@@ -439,10 +443,6 @@ class ExpoMapboxNavigationViewController: UIViewController {
             self.addCustomRasterLayer()
         })
         
-
-        let cancelButton = navigationViewController.navigationView.bottomBannerContainerView.findViews(subclassOf: CancelButton.self)[0]
-        cancelButton.addTarget(self, action: #selector(cancelButtonClicked), for: .touchUpInside)
-
         navigationViewController.delegate = self
         addChild(navigationViewController)
         view.addSubview(navigationViewController.view)
