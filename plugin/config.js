@@ -75,7 +75,7 @@ const withIosConfig = (config, { accessToken, mapboxMapsVersion }) => {
   return configWithAccessToken;
 };
 
-const withAndroidConfig = (config, { androidColorOverrides }) => {
+const withAndroidConfig = (config, { androidColorOverrides = {} }) => {
   return withAndroidColors(config, (config) => {
     let currentModResults = config.modResults;
 
