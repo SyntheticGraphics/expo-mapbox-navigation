@@ -95,13 +95,36 @@ repositories {
   mavenCentral()
 }
 
+// dependencies {
+// def lifecycle_version = "2.9.3"
+// implementation project(':expo-modules-core')
+// implementation("com.mapbox.navigationcore:android-ndk27:3.11.0")
+// implementation ("com.mapbox.navigationcore:ui-components-ndk27:3.11.0")
+// implementation ("com.mapbox.navigationcore:android-auto-components-ndk27:3.11.0")
+// implementation "com.google.android.gms:play-services-location:21.0.1"
+// implementation "androidx.constraintlayout:constraintlayout:2.2.0-alpha13"
+// implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_version"
+// }
+
 dependencies {
-def lifecycle_version = "2.9.3"
-implementation project(':expo-modules-core')
-implementation("com.mapbox.navigationcore:android-ndk27:3.11.0")
-implementation ("com.mapbox.navigationcore:ui-components-ndk27:3.11.0")
-implementation ("com.mapbox.navigationcore:android-auto-components-ndk27:3.11.0")
-implementation "com.google.android.gms:play-services-location:21.0.1"
-implementation "androidx.constraintlayout:constraintlayout:2.2.0-alpha13"
-implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_version"
+    def lifecycle_version = "2.9.3"
+
+    implementation project(':expo-modules-core')
+
+    // Navigation SDK (NDK27)
+    implementation "com.mapbox.navigationcore:android-ndk27:3.16.2"
+    implementation "com.mapbox.navigationcore:ui-components-ndk27:3.16.2"
+    implementation "com.mapbox.navigationcore:android-auto-components-ndk27:3.16.2"
+
+    // Explicit Search SDK (NDK27) – choose versions compatible with your Nav SDK
+    implementation "com.mapbox.search:autofill-ndk27:2.16.2"
+    implementation "com.mapbox.search:discover-ndk27:2.16.2"
+    implementation "com.mapbox.search:place-autocomplete-ndk27:2.16.2"
+    implementation "com.mapbox.search:offline-ndk27:2.16.2"
+    implementation "com.mapbox.search:mapbox-search-android-ndk27:2.16.2"
+    implementation "com.mapbox.search:mapbox-search-android-ui-ndk27:2.16.2"
+
+    implementation "com.google.android.gms:play-services-location:21.0.1"
+    implementation "androidx.constraintlayout:constraintlayout:2.2.0-alpha13"
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_version"
 }
