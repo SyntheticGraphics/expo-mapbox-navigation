@@ -82,11 +82,11 @@ android {
   }
   packagingOptions {
     resources {
-      excludes += setOf(
+      excludes += [
         "META-INF/DEPENDENCIES",
         "META-INF/INDEX.LIST",
         "dash-sdk.properties"
-      )
+      ]
     }
   }
 }
