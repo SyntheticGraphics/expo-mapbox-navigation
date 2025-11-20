@@ -16,7 +16,7 @@ This package relies on the installtion of `@rnmapbox/maps`, so you'll have to in
 Run this command to add the package
 
 ```
-npx expo install @youssefhenna/expo-mapbox-navigation
+npx expo install expo-mapbox-navigation
 ```
 
 ### Configure package
@@ -27,7 +27,7 @@ In your `app.json` or `app.js`, you'll need to add a plugin for the package unde
 "plugins": [
     ...other plugins
      [
-        "@youssefhenna/expo-mapbox-navigation",
+        "expo-mapbox-navigation",
         {
           "accessToken": "<YOUR_TOKEN>",
           "mapboxMapsVersion": "<MAPBOX_MAPS_VERSION>"
@@ -60,7 +60,7 @@ The plugin also has a `androidColorOverrides` field which allows you to define r
 "plugins": [
     ...other plugins
      [
-        "@youssefhenna/expo-mapbox-navigation",
+        "expo-mapbox-navigation",
         {
           "accessToken": "<YOUR_TOKEN>",
           "mapboxMapsVersion": "<MAPBOX_MAPS_VERSION>",
@@ -184,13 +184,6 @@ Called when the user goes off route
 #### `onRoutesLoaded`
 
 Called when routes are finished loading.
-
-## Running the example app
-
-- Run `yarn` on the root directory
-- `cd example`
-- Run `yarn` on the example app
-- Run the app using `npx expo run:android` / `npx expo run:ios`
 
 ## Note on Mapbox version updates (for collaborators)
 

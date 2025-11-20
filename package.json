@@ -1,7 +1,7 @@
 {
-  "name": "@youssefhenna/expo-mapbox-navigation",
-  "version": "1.5.2",
-  "description": "Expo module for Mapbox's Navigation SDK",
+  "name": "expo-mapbox-navigation",
+  "version": "1.0.0",
+  "description": "Expo Mapbox Navigation Device & Auto for Android and iOS",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {
@@ -9,26 +9,17 @@
     "clean": "expo-module clean",
     "lint": "expo-module lint",
     "test": "expo-module test",
-    "expo-module": "expo-module",
-    "open:ios": "xed example/ios",
-    "open:android": "open -a \"Android Studio\" example/android"
+    "expo-module": "expo-module"
   },
   "keywords": [
     "react-native",
     "expo",
     "mapbox",
     "navigation",
-    "@youssefhenna/expo-mapbox-navigation",
-    "ExpoMapboxNavigation"
+    "expo-mapbox-navigation"
   ],
-  "repository": "https://github.com/YoussefHenna/expo-mapbox-navigation",
-  "bugs": {
-    "url": "https://github.com/YoussefHenna/expo-mapbox-navigation/issues"
-  },
-  "author": "YoussefHenna <youssef.hisham14@gmail.com> (https://github.com/YoussefHenna)",
+  "author": "Devotiva",
   "license": "MIT",
-  "homepage": "https://github.com/YoussefHenna/expo-mapbox-navigation#readme",
-  "dependencies": {},
   "devDependencies": {
     "@types/react": "^18.0.25",
     "expo-module-scripts": "^3.5.2",
