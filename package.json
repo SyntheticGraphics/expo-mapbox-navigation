@@ -19,7 +19,10 @@
     "expo-mapbox-navigation"
   ],
   "author": "Devotiva",
+  "homepage": "https://github.com/SyntheticGraphics/expo-mapbox-navigation",
   "license": "MIT",
+  "summary": "Expo Mapbox Navigation Device & Auto for Android and iOS",
+  "dependencies": {},
   "devDependencies": {
     "@types/react": "^18.0.25",
     "expo-module-scripts": "^3.5.2",

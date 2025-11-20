@@ -10,9 +10,13 @@ Pod::Spec.new do |s|
   s.license        = package['license']
   s.author         = package['author']
   s.homepage       = package['homepage']
+  s.summary        = package['summary']
   s.platforms      = { :ios => '13.4', :tvos => '13.4' }
   s.swift_version  = '5.9'
-  s.source         = { git: 'https://github.com/YoussefHenna/expo-mapbox-navigation' }
+  s.source         = { 
+    git: 'https://github.com/SyntheticGraphics/expo-mapbox-navigation.git',
+    tag: "v#{s.version}"
+  }
   s.static_framework = true
 
   s.dependency 'ExpoModulesCore'
