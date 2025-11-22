@@ -1,6 +1,7 @@
 const {
   withDangerousMod,
   withAndroidColors,
+  withAndroidManifest,
   AndroidConfig,
 } = require("@expo/config-plugins");
 const fs = require("fs/promises");
@@ -75,8 +76,35 @@ const withIosConfig = (config, { accessToken, mapboxMapsVersion }) => {
   return configWithAccessToken;
 };
 
-const withAndroidConfig = (config, { androidColorOverrides = {} }) => {
-  return withAndroidColors(config, (config) => {
+const withAndroidTokenMetaData = (config, accessToken) => {
+  return withAndroidManifest(config, async (config) => {
+    const androidManifest = config.modResults;
+    const mainApplication = androidManifest.manifest.application[0];
+
+    if (!mainApplication["meta-data"]) {
+      mainApplication["meta-data"] = [];
+    }
+
+    mainApplication["meta-data"] = mainApplication["meta-data"].filter(
+      (item) => item.$["android:name"] !== "MBXAccessToken"
+    );
+
+    mainApplication["meta-data"].push({
+      $: {
+        "android:name": "MBXAccessToken",
+        "android:value": accessToken,
+      },
+    });
+
+    return config;
+  });
+};
+
+const withAndroidConfig = (
+  config,
+  { accessToken, androidColorOverrides = {} }
+) => {
+  const configWithColors = withAndroidColors(config, (config) => {
     let currentModResults = config.modResults;
 
     for (const [name, value] of Object.entries(androidColorOverrides)) {
@@ -87,6 +115,8 @@ const withAndroidConfig = (config, { androidColorOverrides = {} }) => {
 
     return config;
   });
+
+  return withAndroidTokenMetaData(configWithColors, accessToken);
 };
 
 const withConfig = (
@@ -98,6 +128,7 @@ const withConfig = (
     mapboxMapsVersion,
   });
   const configWithAndroid = withAndroidConfig(configWithIos, {
+    accessToken,
     androidColorOverrides,
   });
   return configWithAndroid;

@@ -12,12 +12,10 @@ buildscript {
     applyKotlinExpoModulesCorePlugin()
   }
 
-  // Simple helper that allows the root project to override versions declared by this library.
   ext.safeExtGet = { prop, fallback ->
     rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
   }
 
-  // Ensures backward compatibility
   ext.getKotlinVersion = {
     if (ext.has("kotlinVersion")) {
       ext.kotlinVersion()
@@ -28,6 +26,7 @@ buildscript {
 
   repositories {
     mavenCentral()
+    google()
   }
 
   dependencies {
@@ -93,6 +92,7 @@ android {
 
 repositories {
   mavenCentral()
+  google()
 }
 
 dependencies {
@@ -100,18 +100,20 @@ dependencies {
 
     implementation project(':expo-modules-core')
 
-    // Navigation SDK (NDK27)
     implementation "com.mapbox.navigationcore:android-ndk27:3.16.2"
     implementation "com.mapbox.navigationcore:ui-components-ndk27:3.16.2"
     implementation "com.mapbox.navigationcore:android-auto-components-ndk27:3.16.2"
 
-    // Explicit Search SDK (NDK27) – choose versions compatible with your Nav SDK
     implementation "com.mapbox.search:autofill-ndk27:2.16.2"
     implementation "com.mapbox.search:discover-ndk27:2.16.2"
     implementation "com.mapbox.search:place-autocomplete-ndk27:2.16.2"
     implementation "com.mapbox.search:offline-ndk27:2.16.2"
     implementation "com.mapbox.search:mapbox-search-android-ndk27:2.16.2"
     implementation "com.mapbox.search:mapbox-search-android-ui-ndk27:2.16.2"
+
+    implementation("com.mapbox.extension:maps-androidauto-ndk27:11.9.0") {
+        exclude group: 'com.mapbox.maps', module: 'android'
+    }
 
     implementation "com.google.android.gms:play-services-location:21.0.1"
     implementation "androidx.constraintlayout:constraintlayout:2.2.0-alpha13"

@@ -1,20 +1,22 @@
 <!-- AndroidManifest.xml -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="androidx.car.app.MAP_TEMPLATES" />
+
     <application>
-    
-        <!-- ===== NUEVO: SERVICIO PARA ANDROID AUTO ===== -->
+
         <service
-            android:name=".NavigationCarAppService"
+            android:name="expo.modules.mapboxnavigation.MainCarAppService"
             android:exported="true"
-            android:label="TuAppEnElCoche">
+            android:label="TAJPM Navigation">
             <intent-filter>
                 <action android:name="androidx.car.app.CarAppService" />
                 <category android:name="androidx.car.app.category.NAVIGATION" />
             </intent-filter>
         </service>
 
-        <!-- ===== NUEVO: METADATOS DE ANDROID AUTO ===== -->
         <meta-data
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />
