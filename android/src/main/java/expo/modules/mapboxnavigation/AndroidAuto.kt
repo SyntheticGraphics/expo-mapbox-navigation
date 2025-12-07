@@ -27,6 +27,11 @@ import android.content.pm.PackageManager
 import com.mapbox.common.MapboxOptions
 import com.mapbox.maps.ContextMode
 import com.mapbox.maps.MapOptions
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import androidx.car.app.ScreenManager
+import androidx.car.app.CarContext
+import android.net.Uri
 
 @androidx.annotation.OptIn(com.mapbox.navigation.base.ExperimentalPreviewMapboxNavigationAPI::class)
 class MainCarAppService : CarAppService() {
@@ -101,6 +106,24 @@ class MainSession : Session() {
                     notificationOptions = MapboxCarNotificationOptions.Builder()
                         .startAppService(MainCarAppService::class.java)
                         .build()
+                }
+
+                owner.lifecycleScope.launch {
+                    AndroidAutoManager.tripStatus.collect { status ->
+                        val screenManager = carContext.getCarService(ScreenManager::class.java)
+                        if (status == "AT_STOP") {
+                            screenManager.push(PassengerActionScreen(carContext))
+                        } else if (status == "COMPLETED") {
+                            try {
+                                val intent = Intent(CarContext.ACTION_NAVIGATE, Uri.parse("geo:0,0?q="))
+                                intent.setPackage("com.google.android.apps.maps")
+                                carContext.startCarApp(intent)
+                            } catch (e: Exception) {
+                                // Fallback or ignore if not supported
+                            }
+                            carContext.finishCarApp()
+                        }
+                    }
                 }
             }
 

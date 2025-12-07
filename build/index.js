@@ -1,3 +1,4 @@
 import MapboxNavigationView from "./ExpoMapboxNavigationView";
-export { MapboxNavigationView, };
+import ExpoMapboxNavigationModule from "./ExpoMapboxNavigationModule";
+export { MapboxNavigationView, ExpoMapboxNavigationModule };
 //# sourceMappingURL=index.js.map

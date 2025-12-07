@@ -1,4 +1,13 @@
 import MapboxNavigationView from "./ExpoMapboxNavigationView";
-import { ExpoMapboxNavigationViewProps, ExpoMapboxNavigationViewRef } from "./ExpoMapboxNavigation.types";
-export { MapboxNavigationView, ExpoMapboxNavigationViewProps as MapboxNavigationViewProps, ExpoMapboxNavigationViewRef as MapboxNavigationViewRef, };
+import ExpoMapboxNavigationModule from "./ExpoMapboxNavigationModule";
+import {
+  ExpoMapboxNavigationViewProps,
+  ExpoMapboxNavigationViewRef,
+} from "./ExpoMapboxNavigation.types";
+export {
+  MapboxNavigationView,
+  ExpoMapboxNavigationModule,
+  ExpoMapboxNavigationViewProps as MapboxNavigationViewProps,
+  ExpoMapboxNavigationViewRef as MapboxNavigationViewRef,
+};
 //# sourceMappingURL=index.d.ts.map

@@ -18,6 +18,21 @@ class ExpoMapboxNavigationModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("ExpoMapboxNavigation")
 
+    Events("onAndroidAutoAction")
+
+    OnCreate {
+      AndroidAutoManager.onActionCallback = { action, data ->
+        this@ExpoMapboxNavigationModule.sendEvent("onAndroidAutoAction", mapOf(
+          "action" to action,
+          "data" to data
+        ))
+      }
+    }
+
+    AsyncFunction("updateAndroidAutoState") { status: String, stopInfo: Map<String, Any?>?, passengers: List<Map<String, Any?>> ->
+      AndroidAutoManager.updateState(status, stopInfo, passengers.map { it.filterValues { v -> v != null } as Map<String, Any> })
+    }
+
     OnActivityEntersForeground {
       (activity as LifecycleOwner).lifecycleScope.launch(Dispatchers.Main) {
         if (!MapboxNavigationApp.isSetup()) {

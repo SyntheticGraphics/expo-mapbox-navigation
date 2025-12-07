@@ -1,4 +1,5 @@
 import MapboxNavigationView from "./ExpoMapboxNavigationView";
+import ExpoMapboxNavigationModule from "./ExpoMapboxNavigationModule";
 import {
   ExpoMapboxNavigationViewProps,
   ExpoMapboxNavigationViewRef,
@@ -6,6 +7,7 @@ import {
 
 export {
   MapboxNavigationView,
+  ExpoMapboxNavigationModule,
   ExpoMapboxNavigationViewProps as MapboxNavigationViewProps,
   ExpoMapboxNavigationViewRef as MapboxNavigationViewRef,
 };
