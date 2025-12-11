@@ -1,5 +1,6 @@
 <!-- AndroidManifest.xml -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -23,7 +24,8 @@
         
         <meta-data
             android:name="androidx.car.app.minCarApiLevel"
-            android:value="1" />
+            android:value="3"
+            tools:replace="android:value" />
 
     </application>
 </manifest>
