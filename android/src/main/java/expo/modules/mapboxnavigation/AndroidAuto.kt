@@ -36,13 +36,7 @@ import android.net.Uri
 @androidx.annotation.OptIn(com.mapbox.navigation.base.ExperimentalPreviewMapboxNavigationAPI::class)
 class MainCarAppService : CarAppService() {
     override fun createHostValidator(): HostValidator {
-        return if (applicationInfo.flags and 2 != 0) {
-            HostValidator.ALLOW_ALL_HOSTS_VALIDATOR
-        } else {
-            HostValidator.Builder(applicationContext)
-                .addAllowedHosts(R.xml.allowed_hosts)
-                .build()
-        }
+        return HostValidator.ALLOW_ALL_HOSTS_VALIDATOR
     }
 
     @OptIn(com.mapbox.navigation.base.ExperimentalPreviewMapboxNavigationAPI::class)
@@ -67,14 +61,7 @@ class MainSession : Session() {
 
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onCreate(owner: LifecycleOwner) {
-                if (!MapboxNavigationApp.isSetup()) {
-                    MapboxNavigationApp.setup {
-                        NavigationOptions.Builder(carContext)
-                            .build()
-                    }
-                }
-
-                // Try to recover access token from metadata if not set
+                // 1. Try to recover access token from metadata FIRST
                 if (MapboxOptions.accessToken == null) {
                     try {
                         val appInfo = carContext.packageManager.getApplicationInfo(carContext.packageName, PackageManager.GET_META_DATA)
@@ -90,7 +77,15 @@ class MainSession : Session() {
                     }
                 }
 
-                // Once a CarContext is available, pass it to the MapboxCarMap.
+                // 2. Setup NavigationApp
+                if (!MapboxNavigationApp.isSetup()) {
+                    MapboxNavigationApp.setup {
+                        NavigationOptions.Builder(carContext)
+                            .build()
+                    }
+                }
+
+                // 3. Setup CarMap
                 mapboxCarMap.setup(
                     carContext,
                     MapInitOptions(
