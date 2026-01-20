@@ -11,7 +11,7 @@ Pod::Spec.new do |s|
   s.author         = package['author']
   s.homepage       = package['homepage']
   s.summary        = package['summary']
-  s.platforms      = { :ios => '13.4', :tvos => '13.4' }
+  s.platforms      = { :ios => '14.0' }
   s.swift_version  = '5.9'
   s.source         = { 
     git: 'https://github.com/SyntheticGraphics/expo-mapbox-navigation.git',
@@ -39,6 +39,10 @@ Pod::Spec.new do |s|
     'Frameworks/MapboxNavigationUIKit.xcframework',
     'Frameworks/Turf.xcframework',
   ]
+  
+  # CarPlay framework dependency
+  s.frameworks = 'CarPlay'
+  s.weak_frameworks = 'CarPlay'
 
   # Swift/Objective-C compatibility
   s.pod_target_xcconfig = {

@@ -1,10 +1,72 @@
 import ExpoModulesCore
 import CoreLocation
+#if canImport(CarPlay)
+import CarPlay
+import MapboxNavigationUIKit
+#endif
 
 public class ExpoMapboxNavigationModule: Module {
 
   public func definition() -> ModuleDefinition {
     Name("ExpoMapboxNavigation")
+
+    // CarPlay events
+    Events("onCarPlayAction", "onCarPlayConnected", "onCarPlayDisconnected")
+
+    // Setup CarPlay action callback
+    OnCreate {
+      #if canImport(CarPlay)
+      CarPlayStateManager.shared.onActionCallback = { [weak self] action, data in
+        self?.sendEvent("onCarPlayAction", [
+          "action": action,
+          "data": data as Any
+        ])
+      }
+      
+      // Listen for CarPlay connection events
+      NotificationCenter.default.addObserver(
+        forName: Notification.Name("CarPlayDidConnect"),
+        object: nil,
+        queue: .main
+      ) { [weak self] _ in
+        self?.sendEvent("onCarPlayConnected", [:])
+      }
+      
+      NotificationCenter.default.addObserver(
+        forName: Notification.Name("CarPlayDidDisconnect"),
+        object: nil,
+        queue: .main
+      ) { [weak self] _ in
+        self?.sendEvent("onCarPlayDisconnected", [:])
+      }
+      #endif
+    }
+
+    // CarPlay state update function (similar to Android Auto)
+    AsyncFunction("updateCarPlayState") { (status: String, stopInfo: [String: Any]?, passengers: [[String: Any]]) in
+      #if canImport(CarPlay)
+      CarPlayStateManager.shared.updateState(
+        status: status,
+        stopInfo: stopInfo,
+        passengers: passengers
+      )
+      #endif
+    }
+
+    // Check if CarPlay is connected
+    Function("isCarPlayConnected") { () -> Bool in
+      #if canImport(CarPlay)
+      return CarPlayManager.isConnected
+      #else
+      return false
+      #endif
+    }
+
+    // Android Auto compatibility stubs (no-op on iOS)
+    // This allows the same code to run on both platforms
+    AsyncFunction("updateAndroidAutoState") { (status: String, stopInfo: [String: Any]?, passengers: [[String: Any]]) in
+      // No-op on iOS - Android Auto only works on Android
+    }
 
     View(ExpoMapboxNavigationView.self) {
       Events("onRouteProgressChanged", "onCancelNavigation", "onWaypointArrival", "onFinalDestinationArrival", "onRouteChanged", "onUserOffRoute", "onRoutesLoaded", "onRouteFailedToLoad")

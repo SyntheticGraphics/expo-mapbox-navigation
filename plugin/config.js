@@ -2,6 +2,8 @@ const {
   withDangerousMod,
   withAndroidColors,
   withAndroidManifest,
+  withEntitlementsPlist,
+  withInfoPlist,
   AndroidConfig,
 } = require("@expo/config-plugins");
 const fs = require("fs/promises");
@@ -26,7 +28,7 @@ const applyPodfilePostInstallModifications = (src, mapboxMapsVersion) => {
               config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
             end
           end
-        end`
+        end`,
     )
   );
 };
@@ -37,14 +39,14 @@ const withIosPostInstallStep = (config, mapboxMapsVersion) =>
     async (exportedConfig) => {
       const file = path.join(
         exportedConfig.modRequest.platformProjectRoot,
-        "Podfile"
+        "Podfile",
       );
 
       const contents = await fs.readFile(file, "utf8");
       await fs.writeFile(
         file,
         applyPodfilePostInstallModifications(contents, mapboxMapsVersion),
-        "utf-8"
+        "utf-8",
       );
 
       return exportedConfig;
@@ -64,16 +66,64 @@ const withIosTokenInfoPlist = (config, accessToken) => {
   return config;
 };
 
-const withIosConfig = (config, { accessToken, mapboxMapsVersion }) => {
-  const configWithPostInstallStep = withIosPostInstallStep(
-    config,
-    mapboxMapsVersion
-  );
-  const configWithAccessToken = withIosTokenInfoPlist(
-    configWithPostInstallStep,
-    accessToken
-  );
-  return configWithAccessToken;
+/**
+ * Add CarPlay scene configuration to Info.plist
+ * Note: For Expo/React Native apps, we only add CarPlay-specific keys
+ * without modifying UIApplicationSceneManifest to avoid breaking the main app
+ */
+const withCarPlayInfoPlist = (config, enableCarPlay) => {
+  if (!enableCarPlay) {
+    return config;
+  }
+
+  return withInfoPlist(config, (config) => {
+    // Add CarPlay Dashboard support flag
+    config.modResults.CPSupportsDashboardNavigationScene = true;
+
+    // Add required background modes for navigation
+    if (!config.modResults.UIBackgroundModes) {
+      config.modResults.UIBackgroundModes = [];
+    }
+
+    const requiredModes = ["location", "audio", "fetch"];
+    requiredModes.forEach((mode) => {
+      if (!config.modResults.UIBackgroundModes.includes(mode)) {
+        config.modResults.UIBackgroundModes.push(mode);
+      }
+    });
+
+    return config;
+  });
+};
+
+/**
+ * Add CarPlay entitlements
+ */
+const withCarPlayEntitlements = (config, enableCarPlay) => {
+  if (!enableCarPlay) {
+    return config;
+  }
+
+  return withEntitlementsPlist(config, (config) => {
+    // Add CarPlay navigation entitlement
+    config.modResults["com.apple.developer.carplay-driving-task"] = true;
+
+    // Also add maps entitlement for navigation apps
+    config.modResults["com.apple.developer.carplay-maps"] = true;
+
+    return config;
+  });
+};
+
+const withIosConfig = (
+  config,
+  { accessToken, mapboxMapsVersion, enableCarPlay = true },
+) => {
+  let modifiedConfig = withIosPostInstallStep(config, mapboxMapsVersion);
+  modifiedConfig = withIosTokenInfoPlist(modifiedConfig, accessToken);
+  modifiedConfig = withCarPlayInfoPlist(modifiedConfig, enableCarPlay);
+  modifiedConfig = withCarPlayEntitlements(modifiedConfig, enableCarPlay);
+  return modifiedConfig;
 };
 
 const withAndroidTokenMetaData = (config, accessToken) => {
@@ -86,7 +136,7 @@ const withAndroidTokenMetaData = (config, accessToken) => {
     }
 
     mainApplication["meta-data"] = mainApplication["meta-data"].filter(
-      (item) => item.$["android:name"] !== "MBXAccessToken"
+      (item) => item.$["android:name"] !== "MBXAccessToken",
     );
 
     mainApplication["meta-data"].push({
@@ -102,7 +152,7 @@ const withAndroidTokenMetaData = (config, accessToken) => {
 
 const withAndroidConfig = (
   config,
-  { accessToken, androidColorOverrides = {} }
+  { accessToken, androidColorOverrides = {} },
 ) => {
   const configWithColors = withAndroidColors(config, (config) => {
     let currentModResults = config.modResults;
@@ -121,11 +171,17 @@ const withAndroidConfig = (
 
 const withConfig = (
   config,
-  { accessToken, mapboxMapsVersion, androidColorOverrides }
+  {
+    accessToken,
+    mapboxMapsVersion,
+    androidColorOverrides,
+    enableCarPlay = true,
+  },
 ) => {
   const configWithIos = withIosConfig(config, {
     accessToken,
     mapboxMapsVersion,
+    enableCarPlay,
   });
   const configWithAndroid = withAndroidConfig(configWithIos, {
     accessToken,

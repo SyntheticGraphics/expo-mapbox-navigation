@@ -34,6 +34,30 @@ type Routes = {
   alternativeRoutes: Route[];
 };
 
+export type VehicleDisplayStatus =
+  | "IDLE"
+  | "EN_ROUTE"
+  | "AT_STOP"
+  | "COMPLETED";
+
+export type StopInfo = {
+  address?: string;
+  type?: string;
+  load?: string | null;
+  end?: string | null;
+};
+
+export type PassengerInfo = {
+  passengerId: string;
+  name: string;
+  status?: "pending" | "picked_up" | "dropped_off";
+};
+
+export type VehicleDisplayAction = {
+  action: string;
+  data?: Record<string, any>;
+};
+
 export type ExpoMapboxNavigationViewRef = {
   recenterMap: () => void;
 };
