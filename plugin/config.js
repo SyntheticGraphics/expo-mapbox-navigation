@@ -66,21 +66,12 @@ const withIosTokenInfoPlist = (config, accessToken) => {
   return config;
 };
 
-/**
- * Add CarPlay scene configuration to Info.plist
- * Note: For Expo/React Native apps, we only add CarPlay-specific keys
- * without modifying UIApplicationSceneManifest to avoid breaking the main app
- */
 const withCarPlayInfoPlist = (config, enableCarPlay) => {
   if (!enableCarPlay) {
     return config;
   }
 
   return withInfoPlist(config, (config) => {
-    // Add CarPlay Dashboard support flag
-    config.modResults.CPSupportsDashboardNavigationScene = true;
-
-    // Add required background modes for navigation
     if (!config.modResults.UIBackgroundModes) {
       config.modResults.UIBackgroundModes = [];
     }
@@ -96,19 +87,13 @@ const withCarPlayInfoPlist = (config, enableCarPlay) => {
   });
 };
 
-/**
- * Add CarPlay entitlements
- */
 const withCarPlayEntitlements = (config, enableCarPlay) => {
   if (!enableCarPlay) {
     return config;
   }
 
   return withEntitlementsPlist(config, (config) => {
-    // Add CarPlay navigation entitlement
     config.modResults["com.apple.developer.carplay-driving-task"] = true;
-
-    // Also add maps entitlement for navigation apps
     config.modResults["com.apple.developer.carplay-maps"] = true;
 
     return config;
@@ -123,6 +108,7 @@ const withIosConfig = (
   modifiedConfig = withIosTokenInfoPlist(modifiedConfig, accessToken);
   modifiedConfig = withCarPlayInfoPlist(modifiedConfig, enableCarPlay);
   modifiedConfig = withCarPlayEntitlements(modifiedConfig, enableCarPlay);
+  modifiedConfig = withCarPlayAppDelegate(modifiedConfig, enableCarPlay);
   return modifiedConfig;
 };
 
@@ -167,6 +153,118 @@ const withAndroidConfig = (
   });
 
   return withAndroidTokenMetaData(configWithColors, accessToken);
+};
+
+const withCarPlayAppDelegate = (config, enableCarPlay) => {
+  if (!enableCarPlay) {
+    return config;
+  }
+
+  return withDangerousMod(config, [
+    "ios",
+    async (exportedConfig) => {
+      const appDelegatePath = path.join(
+        exportedConfig.modRequest.platformProjectRoot,
+        exportedConfig.modRequest.projectName,
+        "AppDelegate.swift",
+      );
+
+      let contents = await fs.readFile(appDelegatePath, "utf8");
+
+      if (contents.includes("CPApplicationDelegate")) {
+        return exportedConfig;
+      }
+
+      const importsToAdd = `
+        import CarPlay
+        import MapboxNavigationCore
+        import MapboxNavigationUIKit
+        import MapboxMaps
+        import ExpoMapboxNavigation
+      `;
+
+      if (contents.includes("import Expo")) {
+        contents = contents.replace(
+          "import Expo",
+          `import Expo\n${importsToAdd}`,
+        );
+      }
+
+      contents = contents.replace(
+        "public class AppDelegate: ExpoAppDelegate {",
+        "public class AppDelegate: ExpoAppDelegate, CPApplicationDelegate {",
+      );
+
+      const carPlayCode = `
+        // MARK: - CarPlay Properties
+        private var carPlayManager: CarPlayManager?
+        
+        // MARK: - CPApplicationDelegate
+        
+        public func application(
+          _ application: UIApplication,
+          didConnectCarInterfaceController interfaceController: CPInterfaceController,
+          to window: CPWindow
+        ) {
+          print("[TAJPM] CarPlay connecting...")
+          
+          // Reuse the shared navigation provider from ExpoMapboxNavigation module
+          // to avoid "Two simultaneous active navigation cores" error
+          if carPlayManager == nil {
+            carPlayManager = CarPlayManager(
+              navigationProvider: SharedNavigationProvider.shared
+            )
+          }
+          
+          // Let CarPlayManager handle the connection - it will set up the map template internally
+          carPlayManager?.application(application, didConnectCarInterfaceController: interfaceController, to: window)
+          
+          // Store references for CarPlayStateManager
+          CarPlayStateManager.shared.interfaceController = interfaceController
+          CarPlayStateManager.shared.carPlayWindow = window
+          CarPlayStateManager.shared.carPlayManager = carPlayManager
+          
+          NotificationCenter.default.post(
+            name: Notification.Name("CarPlayDidConnect"),
+            object: nil,
+            userInfo: ["interfaceController": interfaceController, "window": window]
+          )
+          
+          print("[TAJPM] CarPlay connected successfully")
+        }
+        
+        public func application(
+          _ application: UIApplication,
+          didDisconnectCarInterfaceController interfaceController: CPInterfaceController,
+          from window: CPWindow
+        ) {
+          print("[TAJPM] CarPlay disconnecting...")
+          
+          carPlayManager?.application(application, didDisconnectCarInterfaceController: interfaceController, from: window)
+          
+          // Clear CarPlayStateManager references
+          CarPlayStateManager.shared.interfaceController = nil
+          CarPlayStateManager.shared.carPlayWindow = nil
+          
+          NotificationCenter.default.post(
+            name: Notification.Name("CarPlayDidDisconnect"),
+            object: nil
+          )
+          
+          print("[TAJPM] CarPlay disconnected")
+        }
+      `;
+
+      contents = contents.replace(
+        /}\s*\n\s*\nclass ReactNativeDelegate:/,
+        `${carPlayCode}}\n\nclass ReactNativeDelegate:`,
+      );
+
+      await fs.writeFile(appDelegatePath, contents, "utf-8");
+
+      return exportedConfig;
+    },
+  ]);
 };
 
 const withConfig = (

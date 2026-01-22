@@ -5,14 +5,10 @@ import MapboxDirections
 import CoreLocation
 import MapboxMaps
 
-/// The CarPlay scene delegate that handles CarPlay connections and disconnections.
-/// This class integrates with the Mapbox Navigation SDK's CarPlayManager.
 public class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate {
     
-    /// Singleton CarPlayManager instance shared across the app
     public static var carPlayManager: CarPlayManager?
     
-    /// The navigation provider for CarPlay - shared with main app
     private static var _navigationProvider: MapboxNavigationProvider?
     
     public static var navigationProvider: MapboxNavigationProvider {
@@ -28,15 +24,12 @@ public class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate 
         }
         return _navigationProvider!
     }
-    
-    // MARK: - CPTemplateApplicationSceneDelegate
-    
+       
     public func templateApplicationScene(
         _ templateApplicationScene: CPTemplateApplicationScene,
         didConnect interfaceController: CPInterfaceController,
         to window: CPWindow
     ) {
-        // Initialize CarPlayManager if not already done
         if CarPlaySceneDelegate.carPlayManager == nil {
             CarPlaySceneDelegate.carPlayManager = CarPlayManager(
                 navigationProvider: CarPlaySceneDelegate.navigationProvider
@@ -45,17 +38,14 @@ public class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate 
         
         guard let carPlayManager = CarPlaySceneDelegate.carPlayManager else { return }
         
-        // Set delegate
         carPlayManager.delegate = self
         
-        // Connect to CarPlay
         carPlayManager.templateApplicationScene(
             templateApplicationScene,
             didConnectCarInterfaceController: interfaceController,
             to: window
         )
         
-        // Notify the main app that CarPlay connected
         NotificationCenter.default.post(
             name: Notification.Name("CarPlayDidConnect"),
             object: nil,
@@ -65,7 +55,6 @@ public class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate 
             ]
         )
         
-        // Check if there's an active navigation to mirror
         CarPlayStateManager.shared.checkForActiveNavigation()
     }
     
@@ -82,7 +71,6 @@ public class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate 
             from: window
         )
         
-        // Notify the main app that CarPlay disconnected
         NotificationCenter.default.post(
             name: Notification.Name("CarPlayDidDisconnect"),
             object: nil
@@ -90,11 +78,7 @@ public class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate 
     }
 }
 
-// MARK: - CarPlayManagerDelegate
-
 extension CarPlaySceneDelegate: CarPlayManagerDelegate {
-    
-    // MARK: Required method with cameraState parameter
     @_spi(MapboxInternal)
     public func carPlayManager(
         _ carPlayManager: CarPlayManager,
@@ -114,7 +98,6 @@ extension CarPlaySceneDelegate: CarPlayManagerDelegate {
     }
     
     public func carPlayManagerDidBeginNavigation(_ carPlayManager: CarPlayManager) {
-        // Notify React Native that CarPlay navigation started
         NotificationCenter.default.post(
             name: Notification.Name("CarPlayNavigationDidBegin"),
             object: nil
@@ -122,7 +105,6 @@ extension CarPlaySceneDelegate: CarPlayManagerDelegate {
     }
     
     public func carPlayManagerDidEndNavigation(_ carPlayManager: CarPlayManager) {
-        // Notify React Native that CarPlay navigation ended (legacy method)
         NotificationCenter.default.post(
             name: Notification.Name("CarPlayNavigationDidEnd"),
             object: nil,
@@ -131,7 +113,6 @@ extension CarPlaySceneDelegate: CarPlayManagerDelegate {
     }
     
     public func carPlayManagerDidEndNavigation(_ carPlayManager: CarPlayManager, byCanceling canceled: Bool) {
-        // Notify React Native that CarPlay navigation ended
         NotificationCenter.default.post(
             name: Notification.Name("CarPlayNavigationDidEnd"),
             object: nil,

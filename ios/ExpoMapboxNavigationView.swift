@@ -5,6 +5,15 @@ import MapboxNavigationUIKit
 import MapboxDirections
 import Combine
 
+public class SharedNavigationProvider {
+    public static let shared: MapboxNavigationProvider = MapboxNavigationProvider(
+        coreConfig: CoreConfig(
+            routingConfig: RoutingConfig(fasterRouteDetectionConfig: nil),
+            locationSource: .live
+        )
+    )
+}
+
 class CustomBottomBarViewController: ContainerViewController {}
 
 class ExpoMapboxNavigationView: ExpoView {
@@ -41,7 +50,7 @@ class ExpoMapboxNavigationView: ExpoView {
 
 
 class ExpoMapboxNavigationViewController: UIViewController {
-    static let navigationProvider: MapboxNavigationProvider = MapboxNavigationProvider(coreConfig: CoreConfig(routingConfig: RoutingConfig(fasterRouteDetectionConfig: Optional<FasterRouteDetectionConfig>.none),locationSource: .live ))
+    static let navigationProvider: MapboxNavigationProvider = SharedNavigationProvider.shared
     var mapboxNavigation: MapboxNavigation? = nil
     var routingProvider: RoutingProvider? = nil
     var navigation: NavigationController? = nil

@@ -10,10 +10,8 @@ public class ExpoMapboxNavigationModule: Module {
   public func definition() -> ModuleDefinition {
     Name("ExpoMapboxNavigation")
 
-    // CarPlay events
     Events("onCarPlayAction", "onCarPlayConnected", "onCarPlayDisconnected")
 
-    // Setup CarPlay action callback
     OnCreate {
       #if canImport(CarPlay)
       CarPlayStateManager.shared.onActionCallback = { [weak self] action, data in
@@ -22,8 +20,7 @@ public class ExpoMapboxNavigationModule: Module {
           "data": data as Any
         ])
       }
-      
-      // Listen for CarPlay connection events
+
       NotificationCenter.default.addObserver(
         forName: Notification.Name("CarPlayDidConnect"),
         object: nil,
@@ -42,7 +39,6 @@ public class ExpoMapboxNavigationModule: Module {
       #endif
     }
 
-    // CarPlay state update function (similar to Android Auto)
     AsyncFunction("updateCarPlayState") { (status: String, stopInfo: [String: Any]?, passengers: [[String: Any]]) in
       #if canImport(CarPlay)
       CarPlayStateManager.shared.updateState(
@@ -53,7 +49,6 @@ public class ExpoMapboxNavigationModule: Module {
       #endif
     }
 
-    // Check if CarPlay is connected
     Function("isCarPlayConnected") { () -> Bool in
       #if canImport(CarPlay)
       return CarPlayManager.isConnected
@@ -62,8 +57,6 @@ public class ExpoMapboxNavigationModule: Module {
       #endif
     }
 
-    // Android Auto compatibility stubs (no-op on iOS)
-    // This allows the same code to run on both platforms
     AsyncFunction("updateAndroidAutoState") { (status: String, stopInfo: [String: Any]?, passengers: [[String: Any]]) in
       // No-op on iOS - Android Auto only works on Android
     }
