@@ -629,6 +629,12 @@ class ExpoMapboxNavigationViewController: UIViewController {
             return
         }
         
+        // Obtener la posición inicial del driver (primer coordenada) ANTES de destruir el VC
+        let driverPosition: CLLocationCoordinate2D? = currentCoordinates?.first
+        
+        // Marcar que estamos actualizando waypoints para evitar la animación desde el mundo
+        let wasNavigating = navigationViewController != nil
+        
         NavigationProviderManager.shared.stopActiveNavigation()
 
         navigationViewController = nil
@@ -656,8 +662,20 @@ class ExpoMapboxNavigationViewController: UIViewController {
         let navigationMapView = navVC.navigationMapView
         navigationMapView!.puckType = .puck2D(.navigationDefault)
 
-        if(initialLocation != nil){
-            navigationMapView!.mapView.mapboxMap.setCamera(to: CameraOptions(center: initialLocation!, zoom: initialLocationZoom ?? 15))
+        // IMPORTANTE: Establecer la cámara INMEDIATAMENTE a la posición del driver
+        // ANTES de mostrar la vista, para evitar la animación "fly from space"
+        if let driverPos = driverPosition {
+            navigationMapView!.mapView.mapboxMap.setCamera(to: CameraOptions(
+                center: driverPos, 
+                zoom: currentFollowingZoom ?? 16.0,
+                bearing: 0,
+                pitch: 45
+            ))
+        } else if let initialLoc = initialLocation {
+            navigationMapView!.mapView.mapboxMap.setCamera(to: CameraOptions(
+                center: initialLoc, 
+                zoom: initialLocationZoom ?? 16.0
+            ))
         }
 
         let style = currentMapStyle != nil ? StyleURI(rawValue: currentMapStyle!) : StyleURI.streets
@@ -682,6 +700,19 @@ class ExpoMapboxNavigationViewController: UIViewController {
         didMove(toParent: self)
 
         NavigationProviderManager.shared.registerNavigationViewController(navVC)
+        
+        // IMPORTANTE: Activar el modo "following" INMEDIATAMENTE para evitar 
+        // que la cámara empiece desde la vista mundial
+        // Usar transición instantánea (sin animación) cuando estamos actualizando waypoints
+        if wasNavigating {
+            // Transición instantánea cuando ya estábamos navegando
+            navigationMapView?.navigationCamera.update(cameraState: .following)
+        } else {
+            // Primera vez - pequeño delay para que el SDK se configure
+            DispatchQueue.main.async {
+                navigationMapView?.navigationCamera.update(cameraState: .following)
+            }
+        }
     }
     
     func stopNavigation() {
