@@ -96,5 +96,15 @@ export type ExpoMapboxNavigationViewProps = {
   onRouteFailedToLoad?: (event: {
     nativeEvent: { errorMessage: string };
   }) => void;
+  onNavigationLocationUpdate?: (event: {
+    nativeEvent: {
+      latitude: number;
+      longitude: number;
+      heading: number;
+      speed: number;
+      timestamp: string;
+    };
+  }) => void;
   style?: StyleProp<ViewStyle>;
+  simulation?: boolean;
 };

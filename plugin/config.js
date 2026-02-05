@@ -196,11 +196,8 @@ const withCarPlayAppDelegate = (config, enableCarPlay) => {
       );
 
       const carPlayCode = `
-        // MARK: - CarPlay Properties
         private var carPlayManager: CarPlayManager?
-        
-        // MARK: - CPApplicationDelegate
-        
+                
         public func application(
           _ application: UIApplication,
           didConnectCarInterfaceController interfaceController: CPInterfaceController,
@@ -208,18 +205,15 @@ const withCarPlayAppDelegate = (config, enableCarPlay) => {
         ) {
           print("[TAJPM] CarPlay connecting...")
           
-          // Reuse the shared navigation provider from ExpoMapboxNavigation module
-          // to avoid "Two simultaneous active navigation cores" error
           if carPlayManager == nil {
+            let provider = NavigationProviderManager.shared.getProvider(forSimulation: false)
             carPlayManager = CarPlayManager(
-              navigationProvider: SharedNavigationProvider.shared
+              navigationProvider: provider
             )
           }
           
-          // Let CarPlayManager handle the connection - it will set up the map template internally
           carPlayManager?.application(application, didConnectCarInterfaceController: interfaceController, to: window)
           
-          // Store references for CarPlayStateManager
           CarPlayStateManager.shared.interfaceController = interfaceController
           CarPlayStateManager.shared.carPlayWindow = window
           CarPlayStateManager.shared.carPlayManager = carPlayManager
@@ -241,8 +235,7 @@ const withCarPlayAppDelegate = (config, enableCarPlay) => {
           print("[TAJPM] CarPlay disconnecting...")
           
           carPlayManager?.application(application, didDisconnectCarInterfaceController: interfaceController, from: window)
-          
-          // Clear CarPlayStateManager references
+
           CarPlayStateManager.shared.interfaceController = nil
           CarPlayStateManager.shared.carPlayWindow = nil
           
