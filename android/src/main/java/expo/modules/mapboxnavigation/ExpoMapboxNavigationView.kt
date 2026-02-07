@@ -112,6 +112,7 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
     }
 
     private var isMuted = false
+    private var firstLocationUpdateReceived = false
     private var currentCoordinates: List<Point>? = null
     private var currentLocale = Locale.getDefault()
     private var currentWaypointIndices: List<Int>? = null
@@ -404,7 +405,12 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
             object : LocationObserver {
                 override fun onNewLocationMatcherResult(
                         locationMatcherResult: LocationMatcherResult
-                ) {}
+                ) {
+                    // Update viewport with enhanced location for better accuracy
+                    val enhancedLocation = locationMatcherResult.enhancedLocation
+                    viewportDataSource.onLocationChanged(enhancedLocation)
+                    viewportDataSource.evaluate()
+                }
                 override fun onNewRawLocation(rawLocation: com.mapbox.common.location.Location) {
                     // Update puck location
                     navigationLocationProvider.changePosition(
@@ -413,6 +419,16 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
                     // Update viewport data source
                     viewportDataSource.onLocationChanged(rawLocation)
                     viewportDataSource.evaluate()
+                    
+                    // On first location update, do instant camera transition to avoid "fly from space"
+                    if (!firstLocationUpdateReceived) {
+                        firstLocationUpdateReceived = true
+                        navigationCamera.requestNavigationCameraToFollowing(
+                                stateTransitionOptions = NavigationCameraTransitionOptions.Builder()
+                                        .maxDuration(0) // instant transition
+                                        .build()
+                        )
+                    }
                     
                     // Emit location event to JavaScript
                     onNavigationLocationUpdate(
@@ -717,6 +733,7 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+        firstLocationUpdateReceived = false
         mapboxNavigation?.unregisterRoutesObserver(routesObserver)
         mapboxNavigation?.unregisterRouteProgressObserver(routeProgressObserver)
         mapboxNavigation?.unregisterLocationObserver(locationObserver)
