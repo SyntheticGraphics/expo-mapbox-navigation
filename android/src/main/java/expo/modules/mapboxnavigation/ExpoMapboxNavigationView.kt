@@ -137,6 +137,7 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
     private val onUserOffRoute by EventDispatcher()
     private val onRoutesLoaded by EventDispatcher()
     private val onRouteFailedToLoad by EventDispatcher()
+    private val onNavigationLocationUpdate by EventDispatcher()
 
     private val mapboxNavigation = MapboxNavigationApp.current()
     private var mapboxStyle: Style? = null
@@ -412,6 +413,17 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
                     // Update viewport data source
                     viewportDataSource.onLocationChanged(rawLocation)
                     viewportDataSource.evaluate()
+                    
+                    // Emit location event to JavaScript
+                    onNavigationLocationUpdate(
+                            mapOf(
+                                    "latitude" to rawLocation.latitude,
+                                    "longitude" to rawLocation.longitude,
+                                    "heading" to (rawLocation.bearing ?: 0.0),
+                                    "speed" to (rawLocation.speed ?: 0.0),
+                                    "timestamp" to rawLocation.timestamp.toString()
+                            )
+                    )
                 }
             }
 
