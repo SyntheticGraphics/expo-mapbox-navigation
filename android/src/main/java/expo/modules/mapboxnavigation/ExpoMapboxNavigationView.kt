@@ -406,18 +406,11 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
                 override fun onNewLocationMatcherResult(
                         locationMatcherResult: LocationMatcherResult
                 ) {
-                    // Update viewport with enhanced location for better accuracy
+                    // Use enhanced (interpolated) location for consistency with iOS (~1Hz)
                     val enhancedLocation = locationMatcherResult.enhancedLocation
+                    
+                    // Update viewport with enhanced location
                     viewportDataSource.onLocationChanged(enhancedLocation)
-                    viewportDataSource.evaluate()
-                }
-                override fun onNewRawLocation(rawLocation: com.mapbox.common.location.Location) {
-                    // Update puck location
-                    navigationLocationProvider.changePosition(
-                            location = rawLocation,
-                    )
-                    // Update viewport data source
-                    viewportDataSource.onLocationChanged(rawLocation)
                     viewportDataSource.evaluate()
                     
                     // On first location update, do instant camera transition to avoid "fly from space"
@@ -430,15 +423,21 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
                         )
                     }
                     
-                    // Emit location event to JavaScript
+                    // Emit enhanced location event to JavaScript (interpolated ~1Hz like iOS)
                     onNavigationLocationUpdate(
                             mapOf(
-                                    "latitude" to rawLocation.latitude,
-                                    "longitude" to rawLocation.longitude,
-                                    "heading" to (rawLocation.bearing ?: 0.0),
-                                    "speed" to (rawLocation.speed ?: 0.0),
-                                    "timestamp" to rawLocation.timestamp.toString()
+                                    "latitude" to enhancedLocation.latitude,
+                                    "longitude" to enhancedLocation.longitude,
+                                    "heading" to (enhancedLocation.bearing ?: 0.0),
+                                    "speed" to (enhancedLocation.speed ?: 0.0),
+                                    "timestamp" to System.currentTimeMillis().toString()
                             )
+                    )
+                }
+                override fun onNewRawLocation(rawLocation: com.mapbox.common.location.Location) {
+                    // Update puck location with raw GPS data
+                    navigationLocationProvider.changePosition(
+                            location = rawLocation,
                     )
                 }
             }
