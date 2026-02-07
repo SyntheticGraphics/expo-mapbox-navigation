@@ -53,8 +53,7 @@ class ExpoMapboxNavigationModule : Module() {
               "onRouteChanged",
               "onUserOffRoute",
               "onRoutesLoaded",
-              "onRouteFailedToLoad",
-              "onNavigationLocationUpdate"
+              "onRouteFailedToLoad"
       )
 
       Prop("coordinates") { view: ExpoMapboxNavigationView, coordinates: List<Map<String, Any>> ->
@@ -98,10 +97,6 @@ class ExpoMapboxNavigationModule : Module() {
       }
 
       Prop("mapStyle") { view: ExpoMapboxNavigationView, style: String? -> view.setMapStyle(style) }
-
-      Prop("simulation") { view: ExpoMapboxNavigationView, simulation: Boolean? ->
-          view.setSimulation(simulation)
-      }
 
       Prop("mute") { view: ExpoMapboxNavigationView, isMuted: Boolean? -> view.setIsMuted(isMuted) }
 
