@@ -180,6 +180,9 @@ class ExpoMapboxNavigationViewController: UIViewController {
     }
 
     func subscribeToEvents() {
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
         locationMatchingCancellable = navigation!.locationMatching.sink { state in
              let enhancedLocation = state.enhancedLocation
              self.onNavigationLocationUpdate?([
@@ -187,7 +190,7 @@ class ExpoMapboxNavigationViewController: UIViewController {
                  "longitude": enhancedLocation.coordinate.longitude,
                  "heading": enhancedLocation.course,
                  "speed": enhancedLocation.speed,
-                 "timestamp": enhancedLocation.timestamp.description
+                 "timestamp": isoFormatter.string(from: enhancedLocation.timestamp)
              ])
         }
 

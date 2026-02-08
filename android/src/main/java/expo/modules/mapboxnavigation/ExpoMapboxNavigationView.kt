@@ -430,7 +430,7 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
                                     "longitude" to enhancedLocation.longitude,
                                     "heading" to (enhancedLocation.bearing ?: 0.0),
                                     "speed" to (enhancedLocation.speed ?: 0.0),
-                                    "timestamp" to System.currentTimeMillis().toString()
+                                    "timestamp" to enhancedLocation.timestamp.toString()
                             )
                     )
                 }
