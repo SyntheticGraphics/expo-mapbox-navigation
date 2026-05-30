@@ -185,13 +185,17 @@ class ExpoMapboxNavigationViewController: UIViewController {
         
         locationMatchingCancellable = navigation!.locationMatching.sink { state in
              let enhancedLocation = state.enhancedLocation
-             self.onNavigationLocationUpdate?([
+             var payload: [String: Any] = [
                  "latitude": enhancedLocation.coordinate.latitude,
                  "longitude": enhancedLocation.coordinate.longitude,
                  "heading": enhancedLocation.course,
                  "speed": enhancedLocation.speed,
                  "timestamp": isoFormatter.string(from: enhancedLocation.timestamp)
-             ])
+             ]
+             if let speedMeasurement = state.speedLimit.value {
+                 payload["speedLimit"] = speedMeasurement.converted(to: .milesPerHour).value
+             }
+             self.onNavigationLocationUpdate?(payload)
         }
 
         routeProgressCancellable = navigation!.routeProgress.sink { progressState in

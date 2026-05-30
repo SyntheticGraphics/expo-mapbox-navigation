@@ -424,15 +424,19 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
                     }
                     
                     // Emit enhanced location event to JavaScript (interpolated ~1Hz like iOS)
-                    onNavigationLocationUpdate(
-                            mapOf(
-                                    "latitude" to enhancedLocation.latitude,
-                                    "longitude" to enhancedLocation.longitude,
-                                    "heading" to (enhancedLocation.bearing ?: 0.0),
-                                    "speed" to (enhancedLocation.speed ?: 0.0),
-                                    "timestamp" to enhancedLocation.timestamp.toString()
-                            )
+                    val speedLimitMph = locationMatcherResult.speedLimit?.speedKmph
+                        ?.let { kmph -> kmph * 0.621371 }
+                    val locationPayload = mutableMapOf<String, Any>(
+                            "latitude" to enhancedLocation.latitude,
+                            "longitude" to enhancedLocation.longitude,
+                            "heading" to (enhancedLocation.bearing ?: 0.0),
+                            "speed" to (enhancedLocation.speed ?: 0.0),
+                            "timestamp" to enhancedLocation.timestamp.toString()
                     )
+                    if (speedLimitMph != null) {
+                        locationPayload["speedLimit"] = speedLimitMph
+                    }
+                    onNavigationLocationUpdate(locationPayload)
                 }
                 override fun onNewRawLocation(rawLocation: com.mapbox.common.location.Location) {
                     // Update puck location with raw GPS data

@@ -103,6 +103,7 @@ export type ExpoMapboxNavigationViewProps = {
       heading: number;
       speed: number;
       timestamp: string;
+      speedLimit?: number;
     };
   }) => void;
   style?: StyleProp<ViewStyle>;
