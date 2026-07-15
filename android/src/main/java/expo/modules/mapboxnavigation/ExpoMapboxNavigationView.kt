@@ -41,6 +41,7 @@ import com.mapbox.navigation.base.route.NavigationRoute
 import com.mapbox.navigation.base.route.NavigationRouterCallback
 import com.mapbox.navigation.base.route.RouterFailure
 import com.mapbox.navigation.base.route.RouterOrigin
+import com.mapbox.navigation.base.speed.model.SpeedUnit
 import com.mapbox.navigation.base.trip.model.RouteLegProgress
 import com.mapbox.navigation.base.trip.model.RouteProgress
 import com.mapbox.navigation.core.arrival.ArrivalObserver
@@ -424,8 +425,14 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
                     }
                     
                     // Emit enhanced location event to JavaScript (interpolated ~1Hz like iOS)
-                    val speedLimitMph = locationMatcherResult.speedLimit?.speedKmph
-                        ?.let { kmph -> kmph * 0.621371 }
+                    val speedLimitInfo = locationMatcherResult.speedLimitInfo
+                    val speedLimitMph = speedLimitInfo.speed?.toDouble()?.let { speed ->
+                        when (speedLimitInfo.unit) {
+                            SpeedUnit.MILES_PER_HOUR -> speed
+                            SpeedUnit.KILOMETERS_PER_HOUR -> speed * 0.621371
+                            SpeedUnit.METERS_PER_SECOND -> speed * 2.236936
+                        }
+                    }
                     val locationPayload = mutableMapOf<String, Any>(
                             "latitude" to enhancedLocation.latitude,
                             "longitude" to enhancedLocation.longitude,
