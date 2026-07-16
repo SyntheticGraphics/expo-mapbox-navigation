@@ -5,8 +5,7 @@ import MapboxDirections
 import CoreLocation
 import MapboxMaps
 
-@objc(ExpoMapboxNavigationCarPlaySceneDelegate)
-public final class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate {
+public class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDelegate {
     
     public static var carPlayManager: CarPlayManager?
     
@@ -47,10 +46,6 @@ public final class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDel
             to: window
         )
 
-        CarPlayStateManager.shared.interfaceController = interfaceController
-        CarPlayStateManager.shared.carPlayWindow = window
-        CarPlayStateManager.shared.carPlayManager = carPlayManager
-        
         NotificationCenter.default.post(
             name: Notification.Name("CarPlayDidConnect"),
             object: nil,
@@ -76,9 +71,6 @@ public final class CarPlaySceneDelegate: NSObject, CPTemplateApplicationSceneDel
             from: window
         )
 
-        CarPlayStateManager.shared.interfaceController = nil
-        CarPlayStateManager.shared.carPlayWindow = nil
-        
         NotificationCenter.default.post(
             name: Notification.Name("CarPlayDidDisconnect"),
             object: nil
