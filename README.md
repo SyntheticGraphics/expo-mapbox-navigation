@@ -30,7 +30,9 @@ In your `app.json` or `app.js`, you'll need to add a plugin for the package unde
         "expo-mapbox-navigation",
         {
           "accessToken": "<YOUR_TOKEN>",
-          "mapboxMapsVersion": "<MAPBOX_MAPS_VERSION>"
+          "mapboxMapsVersion": "<MAPBOX_MAPS_VERSION>",
+          "enableCarPlay": false,
+          "enableAndroidAuto": false
         }
       ]
 ]
@@ -53,6 +55,26 @@ Additionally you need to enable `useFrameworks` in your ios config. This can be 
 ```
 
 #### More notes on plugin
+
+`enableCarPlay` and `enableAndroidAuto` are both `false` by default. Set only
+the integration that the host application actually supports:
+
+```json
+[
+  "expo-mapbox-navigation",
+  {
+    "accessToken": "<YOUR_TOKEN>",
+    "mapboxMapsVersion": "<MAPBOX_MAPS_VERSION>",
+    "enableCarPlay": true,
+    "enableAndroidAuto": true
+  }
+]
+```
+
+When Android Auto is disabled, the config plugin writes manifest merger removal
+rules for the navigation `CarAppService`, automotive metadata, and
+`androidx.car.app.MAP_TEMPLATES`. This prevents applications that share the
+native module from advertising Android Auto unintentionally.
 
 The plugin also has a `androidColorOverrides` field which allows you to define resource colors in the android app. This is particualrly useful to override some of the predefined mapbox colors and customize the apperance of the components. It is somewhat tricky to find which colors to change, but looking through the [mapbox repo](https://github.com/mapbox/mapbox-navigation-android/blob/main/ui-components/src/main/res/values/colors-maneuver.xml) may help
 

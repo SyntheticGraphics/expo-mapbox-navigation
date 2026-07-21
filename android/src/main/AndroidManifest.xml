@@ -1,31 +1,6 @@
 <!-- AndroidManifest.xml -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="androidx.car.app.MAP_TEMPLATES" />
-
-    <application>
-
-        <service
-            android:name="expo.modules.mapboxnavigation.MainCarAppService"
-            android:exported="true"
-            android:label="TAJPM">
-            <intent-filter>
-                <action android:name="androidx.car.app.CarAppService" />
-                <category android:name="androidx.car.app.category.NAVIGATION" />
-            </intent-filter>
-        </service>
-
-        <meta-data
-            android:name="com.google.android.gms.car.application"
-            android:resource="@xml/automotive_app_desc" />
-        
-        <meta-data
-            android:name="androidx.car.app.minCarApiLevel"
-            android:value="3"
-            tools:replace="android:value" />
-
-    </application>
 </manifest>

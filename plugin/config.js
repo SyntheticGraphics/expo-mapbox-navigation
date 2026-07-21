@@ -5,9 +5,19 @@ const {
   withEntitlementsPlist,
   withInfoPlist,
   AndroidConfig,
+  createRunOncePlugin,
 } = require("@expo/config-plugins");
 const fs = require("fs/promises");
 const path = require("path");
+const pkg = require("../package.json");
+
+const TOOLS_NAMESPACE = "http://schemas.android.com/tools";
+const ANDROID_AUTO_PERMISSION = "androidx.car.app.MAP_TEMPLATES";
+const ANDROID_AUTO_SERVICE = "expo.modules.mapboxnavigation.MainCarAppService";
+const ANDROID_AUTO_METADATA = [
+  "com.google.android.gms.car.application",
+  "androidx.car.app.minCarApiLevel",
+];
 
 /**
  * This plugin adds a post-install step to the Podfile that addresses linking issues between pods and xcframeworks.
@@ -102,7 +112,7 @@ const withCarPlayEntitlements = (config, enableCarPlay) => {
 
 const withIosConfig = (
   config,
-  { accessToken, mapboxMapsVersion, enableCarPlay = true },
+  { accessToken, mapboxMapsVersion, enableCarPlay = false },
 ) => {
   let modifiedConfig = withIosPostInstallStep(config, mapboxMapsVersion);
   modifiedConfig = withIosTokenInfoPlist(modifiedConfig, accessToken);
@@ -111,6 +121,103 @@ const withIosConfig = (
   modifiedConfig = withCarPlayAppDelegate(modifiedConfig, enableCarPlay);
   return modifiedConfig;
 };
+
+const replaceManifestEntry = (items = [], name, replacement) => [
+  ...items.filter((item) => item?.$?.["android:name"] !== name),
+  replacement,
+];
+
+const removalMarker = (name) => ({
+  $: {
+    "android:name": name,
+    "tools:node": "remove",
+  },
+});
+
+const androidAutoService = {
+  $: {
+    "android:name": ANDROID_AUTO_SERVICE,
+    "android:exported": "true",
+    "android:label": "@string/app_name",
+  },
+  "intent-filter": [
+    {
+      action: [
+        {
+          $: {
+            "android:name": "androidx.car.app.CarAppService",
+          },
+        },
+      ],
+      category: [
+        {
+          $: {
+            "android:name": "androidx.car.app.category.NAVIGATION",
+          },
+        },
+      ],
+    },
+  ],
+};
+
+const androidAutoMetadata = {
+  "com.google.android.gms.car.application": {
+    $: {
+      "android:name": "com.google.android.gms.car.application",
+      "android:resource": "@xml/automotive_app_desc",
+    },
+  },
+  "androidx.car.app.minCarApiLevel": {
+    $: {
+      "android:name": "androidx.car.app.minCarApiLevel",
+      "android:value": "3",
+      "tools:replace": "android:value",
+    },
+  },
+};
+
+const withAndroidAuto = (config, enableAndroidAuto) =>
+  withAndroidManifest(config, (manifestConfig) => {
+    const androidManifest = manifestConfig.modResults.manifest;
+    androidManifest.$ = androidManifest.$ || {};
+    androidManifest.$["xmlns:tools"] = TOOLS_NAMESPACE;
+
+    androidManifest["uses-permission"] = replaceManifestEntry(
+      androidManifest["uses-permission"],
+      ANDROID_AUTO_PERMISSION,
+      enableAndroidAuto
+        ? {
+            $: {
+              "android:name": ANDROID_AUTO_PERMISSION,
+            },
+          }
+        : removalMarker(ANDROID_AUTO_PERMISSION),
+    );
+
+    const mainApplication = AndroidConfig.Manifest.getMainApplicationOrThrow(
+      manifestConfig.modResults,
+    );
+
+    mainApplication.service = replaceManifestEntry(
+      mainApplication.service,
+      ANDROID_AUTO_SERVICE,
+      enableAndroidAuto
+        ? androidAutoService
+        : removalMarker(ANDROID_AUTO_SERVICE),
+    );
+
+    for (const metadataName of ANDROID_AUTO_METADATA) {
+      mainApplication["meta-data"] = replaceManifestEntry(
+        mainApplication["meta-data"],
+        metadataName,
+        enableAndroidAuto
+          ? androidAutoMetadata[metadataName]
+          : removalMarker(metadataName),
+      );
+    }
+
+    return manifestConfig;
+  });
 
 const withAndroidTokenMetaData = (config, accessToken) => {
   return withAndroidManifest(config, async (config) => {
@@ -138,7 +245,7 @@ const withAndroidTokenMetaData = (config, accessToken) => {
 
 const withAndroidConfig = (
   config,
-  { accessToken, androidColorOverrides = {} },
+  { accessToken, androidColorOverrides = {}, enableAndroidAuto = false },
 ) => {
   const configWithColors = withAndroidColors(config, (config) => {
     let currentModResults = config.modResults;
@@ -152,7 +259,12 @@ const withAndroidConfig = (
     return config;
   });
 
-  return withAndroidTokenMetaData(configWithColors, accessToken);
+  const configWithToken = withAndroidTokenMetaData(
+    configWithColors,
+    accessToken,
+  );
+
+  return withAndroidAuto(configWithToken, enableAndroidAuto);
 };
 
 const withCarPlayAppDelegate = (config, enableCarPlay) => {
@@ -266,7 +378,8 @@ const withConfig = (
     accessToken,
     mapboxMapsVersion,
     androidColorOverrides,
-    enableCarPlay = true,
+    enableCarPlay = false,
+    enableAndroidAuto = false,
   },
 ) => {
   const configWithIos = withIosConfig(config, {
@@ -277,8 +390,9 @@ const withConfig = (
   const configWithAndroid = withAndroidConfig(configWithIos, {
     accessToken,
     androidColorOverrides,
+    enableAndroidAuto,
   });
   return configWithAndroid;
 };
 
-module.exports = withConfig;
+module.exports = createRunOncePlugin(withConfig, pkg.name, pkg.version);
