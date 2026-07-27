@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.res.Configuration
 import android.content.res.Resources
 import android.graphics.Color
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -97,6 +98,11 @@ import expo.modules.kotlin.views.ExpoView
 import java.util.Locale
 
 val PIXEL_DENSITY = Resources.getSystem().displayMetrics.density
+
+private const val TAG = "ExpoMapboxNavigation"
+private const val MAPBOX_STANDARD_STYLE_URI = "mapbox://styles/mapbox/standard"
+private const val MAPBOX_STANDARD_SATELLITE_STYLE_URI =
+        "mapbox://styles/mapbox/standard-satellite"
 
 class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
         ExpoView(context, appContext) {
@@ -947,6 +953,37 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
         style.addLayerAbove(rasterLayer, aboveLayerId)
     }
 
+    private fun localizeLabelsIfSupported(style: Style) {
+        val normalizedStyleUri = currentMapStyle?.substringBefore('?')?.trimEnd('/')
+        if (
+                normalizedStyleUri == MAPBOX_STANDARD_STYLE_URI ||
+                        normalizedStyleUri == MAPBOX_STANDARD_SATELLITE_STYLE_URI
+        ) {
+            return
+        }
+
+        try {
+            style.localizeLabels(currentLocale)
+        } catch (exception: RuntimeException) {
+            val isUnsupportedRuntimeLocalization =
+                    exception.message?.contains(
+                            "does not support client-side runtime localization",
+                            ignoreCase = true
+                    ) == true
+
+            if (!isUnsupportedRuntimeLocalization) {
+                throw exception
+            }
+
+            // Custom styles can import Mapbox Standard even when their URL does not reveal it.
+            // In that case Standard already owns label internationalization, so keep its labels.
+            Log.w(
+                    TAG,
+                    "Skipping client-side label localization because this style uses Mapbox Standard."
+            )
+        }
+    }
+
     @com.mapbox.navigation.base.ExperimentalPreviewMapboxNavigationAPI
     private fun update() {
         voiceInstructionsPlayer =
@@ -959,12 +996,12 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
         if (currentMapStyle != null) {
             mapboxMap.loadStyle(currentMapStyle!!) { style: Style ->
                 mapboxStyle = style
-                style.localizeLabels(currentLocale)
+                localizeLabelsIfSupported(style)
                 addCustomRasterLayer()
             }
         } else {
             mapboxMap.getStyle { style: Style ->
-                style.localizeLabels(currentLocale)
+                localizeLabelsIfSupported(style)
                 addCustomRasterLayer()
             }
         }

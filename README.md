@@ -122,6 +122,10 @@ When enabled, uses Mapbox's Map Matching API to generate the route instead of th
 
 A string representation of a locale/language code that adjusts the Map labels, directions, and voice where possible. By default, uses the devices locale.
 
+Mapbox Standard and Standard Satellite manage map-label internationalization in the
+style itself, so client-side runtime label localization is skipped for those styles.
+The locale still applies to route requests, maneuver distances, and voice instructions.
+
 #### `routeProfile`
 
 The profile to use for route generation. `mapbox/driving-traffic` by default. See [here](https://docs.mapbox.com/api/navigation/directions/#routing-profiles) for details. NOTE: For android, you need to omit the `mapbox/` prefix.
