@@ -291,25 +291,24 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
     private val routesObserver =
             object : RoutesObserver {
                 override fun onRoutesChanged(result: RoutesUpdatedResult) {
-                    onRoutesLoaded(
-                            mapOf(
-                                    "routes" to
-                                            mapOf(
-                                                    "mainRoute" to
-                                                            convertRoute(
-                                                                    result.navigationRoutes.first()
-                                                            ),
-                                                    "alternativeRoutes" to
-                                                            result.navigationRoutes.drop(1).map {
-                                                                convertRoute(it)
-                                                            }
-                                            )
-                            )
-                    )
+                    val routes = result.navigationRoutes
+
+                    if (routes.isNotEmpty()) {
+                        onRoutesLoaded(
+                                mapOf(
+                                        "routes" to
+                                                mapOf(
+                                                        "mainRoute" to convertRoute(routes.first()),
+                                                        "alternativeRoutes" to
+                                                                routes.drop(1).map { convertRoute(it) }
+                                                )
+                                )
+                        )
+                    }
 
                     // Handle viewport data source
-                    if (result.navigationRoutes.isNotEmpty()) {
-                        viewportDataSource.onRouteChanged(result.navigationRoutes.first())
+                    if (routes.isNotEmpty()) {
+                        viewportDataSource.onRouteChanged(routes.first())
                         viewportDataSource.evaluate()
                     } else {
                         viewportDataSource.clearRouteData()
@@ -318,10 +317,15 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
 
                     // Handle route lines
                     val alternativesMetadata =
-                            mapboxNavigation?.getAlternativeMetadataFor(result.navigationRoutes)
-                    if (alternativesMetadata != null) {
+                            mapboxNavigation?.getAlternativeMetadataFor(routes)
+                    if (routes.isEmpty()) {
+                        routeLineApi.clearRouteLine { value ->
+                            mapboxStyle?.let { routeLineView.renderClearRouteLineValue(it, value) }
+                        }
+                        mapboxStyle?.let { routeArrowView.render(it, routeArrow.clearArrows()) }
+                    } else if (alternativesMetadata != null) {
                         routeLineApi.setNavigationRoutes(
-                                result.navigationRoutes,
+                                routes,
                                 alternativesMetadata
                         ) { value ->
                             mapboxStyle?.let { routeLineView.renderRouteDrawData(it, value) }

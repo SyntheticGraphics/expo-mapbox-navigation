@@ -1,42 +1,50 @@
 package expo.modules.mapboxnavigation
 
+import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import androidx.car.app.CarAppService
+import androidx.car.app.ScreenManager
 import androidx.car.app.Screen
 import androidx.car.app.Session
 import androidx.car.app.validation.HostValidator
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import com.mapbox.android.core.permissions.PermissionsManager
+import com.mapbox.common.MapboxOptions
 import com.mapbox.maps.MapInitOptions
-import com.mapbox.navigation.base.options.NavigationOptions
-import com.mapbox.navigation.core.lifecycle.MapboxNavigationApp
-import com.mapbox.navigation.ui.androidauto.MapboxCarContext
-import com.mapbox.navigation.ui.androidauto.map.MapboxCarMapLoader
+import com.mapbox.maps.ContextMode
+import com.mapbox.maps.MapOptions
 import com.mapbox.maps.extension.androidauto.MapboxCarMap
+import com.mapbox.navigation.base.options.NavigationOptions
+import com.mapbox.navigation.core.MapboxNavigation
+import com.mapbox.navigation.core.lifecycle.MapboxNavigationApp
+import com.mapbox.navigation.core.lifecycle.MapboxNavigationObserver
+import com.mapbox.navigation.core.replay.route.ReplayRouteSession
+import com.mapbox.navigation.ui.androidauto.MapboxCarContext
 import com.mapbox.navigation.ui.androidauto.deeplink.GeoDeeplinkNavigateAction
+import com.mapbox.navigation.ui.androidauto.map.MapboxCarMapLoader
 import com.mapbox.navigation.ui.androidauto.notification.MapboxCarNotificationOptions
 import com.mapbox.navigation.ui.androidauto.screenmanager.MapboxScreen
 import com.mapbox.navigation.ui.androidauto.screenmanager.MapboxScreenManager
 import com.mapbox.navigation.ui.androidauto.screenmanager.prepareScreens
-
-import androidx.core.content.ContextCompat
-import android.Manifest
-import android.content.pm.PackageManager
-import com.mapbox.common.MapboxOptions
-import com.mapbox.maps.ContextMode
-import com.mapbox.maps.MapOptions
-import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import androidx.car.app.ScreenManager
-import androidx.car.app.CarContext
-import android.net.Uri
 
 @androidx.annotation.OptIn(com.mapbox.navigation.base.ExperimentalPreviewMapboxNavigationAPI::class)
 class MainCarAppService : CarAppService() {
     override fun createHostValidator(): HostValidator {
-        return HostValidator.ALLOW_ALL_HOSTS_VALIDATOR
+        return if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+            HostValidator.ALLOW_ALL_HOSTS_VALIDATOR
+        } else {
+            HostValidator.Builder(this)
+                .addAllowedHosts(androidx.car.app.R.array.hosts_allowlist_sample)
+                .build()
+        }
     }
 
     @OptIn(com.mapbox.navigation.base.ExperimentalPreviewMapboxNavigationAPI::class)
@@ -52,17 +60,27 @@ class MainSession : Session() {
     private val carMapLoader = MapboxCarMapLoader()
     private val mapboxCarMap = MapboxCarMap()
     private val mapboxCarContext = MapboxCarContext(lifecycle, mapboxCarMap)
+    private val replayRouteSession = ReplayRouteSession()
+    private var replayRouteSessionRegistered = false
+
+    private val tripSessionObserver = object : MapboxNavigationObserver {
+        @SuppressLint("MissingPermission")
+        override fun onAttached(mapboxNavigation: MapboxNavigation) {
+            if (PermissionsManager.areLocationPermissionsGranted(carContext)) {
+                mapboxNavigation.startTripSession(withForegroundService = true)
+            }
+        }
+
+        override fun onDetached(mapboxNavigation: MapboxNavigation) = Unit
+    }
 
     init {
         mapboxCarMap.registerObserver(carMapLoader)
 
-        // Attach the car lifecycle to MapboxNavigationApp.
-        MapboxNavigationApp.attach(lifecycleOwner = this)
-
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onCreate(owner: LifecycleOwner) {
                 // 1. Try to recover access token from metadata FIRST
-                if (MapboxOptions.accessToken == null) {
+                if (MapboxOptions.accessToken.isBlank()) {
                     try {
                         val appInfo = carContext.packageManager.getApplicationInfo(carContext.packageName, PackageManager.GET_META_DATA)
                         val token = appInfo.metaData?.getString("MBXAccessToken") 
@@ -85,6 +103,9 @@ class MainSession : Session() {
                     }
                 }
 
+                MapboxNavigationApp.registerObserver(tripSessionObserver)
+                MapboxNavigationApp.attach(owner)
+
                 // 3. Setup CarMap
                 mapboxCarMap.setup(
                     carContext,
@@ -104,18 +125,22 @@ class MainSession : Session() {
                 }
 
                 owner.lifecycleScope.launch {
+                    mapboxCarContext.mapboxNavigationManager.autoDriveEnabledFlow
+                        .filter { it }
+                        .first()
+
+                    if (!replayRouteSessionRegistered) {
+                        replayRouteSessionRegistered = true
+                        MapboxNavigationApp.registerObserver(replayRouteSession)
+                    }
+                }
+
+                owner.lifecycleScope.launch {
                     AndroidAutoManager.tripStatus.collect { status ->
                         val screenManager = carContext.getCarService(ScreenManager::class.java)
                         if (status == "AT_STOP") {
                             screenManager.push(PassengerActionScreen(carContext))
                         } else if (status == "COMPLETED") {
-                            try {
-                                val intent = Intent(CarContext.ACTION_NAVIGATE, Uri.parse("geo:0,0?q="))
-                                intent.setPackage("com.google.android.apps.maps")
-                                carContext.startCarApp(intent)
-                            } catch (e: Exception) {
-                                // Fallback or ignore if not supported
-                            }
                             carContext.finishCarApp()
                         }
                     }
@@ -123,6 +148,12 @@ class MainSession : Session() {
             }
 
             override fun onDestroy(owner: LifecycleOwner) {
+                if (replayRouteSessionRegistered) {
+                    MapboxNavigationApp.unregisterObserver(replayRouteSession)
+                    replayRouteSessionRegistered = false
+                }
+                MapboxNavigationApp.unregisterObserver(tripSessionObserver)
+                MapboxNavigationApp.detach(owner)
                 mapboxCarMap.clearObservers()
             }
         })
@@ -132,18 +163,19 @@ class MainSession : Session() {
         // Prepare screens before creating the first screen
         mapboxCarContext.prepareScreens()
 
-        // Check for permissions but default to Free Drive to avoid crashes if factory is missing
-        val hasLocationPermission = ContextCompat.checkSelfPermission(carContext, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        
-        // For now, we force Free Drive or current screen to ensure stability.
-        // If permission is missing, the map might just be empty or request it.
-        val firstScreenKey = MapboxScreenManager.current()?.key ?: MapboxScreen.FREE_DRIVE
+        GeoDeeplinkNavigateAction(mapboxCarContext).onNewIntent(intent)
+
+        val firstScreenKey = if (PermissionsManager.areLocationPermissionsGranted(carContext)) {
+            MapboxScreenManager.current()?.key ?: MapboxScreen.FREE_DRIVE
+        } else {
+            MapboxScreen.NEEDS_LOCATION_PERMISSION
+        }
 
         return mapboxCarContext.mapboxScreenManager.createScreen(firstScreenKey)
     }
 
     override fun onCarConfigurationChanged(newConfiguration: Configuration) {
-        // carMapLoader.updateMapStyle(carContext.isDarkMode)
+        carMapLoader.onCarConfigurationChanged(carContext)
     }
 
     override fun onNewIntent(intent: Intent) {

@@ -14,6 +14,7 @@ const pkg = require("../package.json");
 const TOOLS_NAMESPACE = "http://schemas.android.com/tools";
 const ANDROID_AUTO_PERMISSION = "androidx.car.app.MAP_TEMPLATES";
 const ANDROID_AUTO_SERVICE = "expo.modules.mapboxnavigation.MainCarAppService";
+const ANDROID_AUTO_NAVIGATE_ACTION = "androidx.car.app.action.NAVIGATE";
 const ANDROID_AUTO_METADATA = [
   "com.google.android.gms.car.application",
   "androidx.car.app.minCarApiLevel",
@@ -139,6 +140,9 @@ const androidAutoService = {
     "android:name": ANDROID_AUTO_SERVICE,
     "android:exported": "true",
     "android:label": "@string/app_name",
+    "android:icon": "@mipmap/ic_launcher",
+    "android:roundIcon": "@mipmap/ic_launcher_round",
+    "android:foregroundServiceType": "location",
   },
   "intent-filter": [
     {
@@ -176,6 +180,35 @@ const androidAutoMetadata = {
   },
 };
 
+const androidAutoNavigationIntentFilter = {
+  action: [
+    {
+      $: {
+        "android:name": ANDROID_AUTO_NAVIGATE_ACTION,
+      },
+    },
+  ],
+  category: [
+    {
+      $: {
+        "android:name": "android.intent.category.DEFAULT",
+      },
+    },
+  ],
+  data: [
+    {
+      $: {
+        "android:scheme": "geo",
+      },
+    },
+  ],
+};
+
+const isAndroidAutoNavigationIntentFilter = (intentFilter) =>
+  intentFilter?.action?.some(
+    (action) => action?.$?.["android:name"] === ANDROID_AUTO_NAVIGATE_ACTION,
+  );
+
 const withAndroidAuto = (config, enableAndroidAuto) =>
   withAndroidManifest(config, (manifestConfig) => {
     const androidManifest = manifestConfig.modResults.manifest;
@@ -197,6 +230,16 @@ const withAndroidAuto = (config, enableAndroidAuto) =>
     const mainApplication = AndroidConfig.Manifest.getMainApplicationOrThrow(
       manifestConfig.modResults,
     );
+    const mainActivity = AndroidConfig.Manifest.getMainActivityOrThrow(
+      manifestConfig.modResults,
+    );
+
+    mainActivity["intent-filter"] = [
+      ...(mainActivity["intent-filter"] || []).filter(
+        (intentFilter) => !isAndroidAutoNavigationIntentFilter(intentFilter),
+      ),
+      ...(enableAndroidAuto ? [androidAutoNavigationIntentFilter] : []),
+    ];
 
     mainApplication.service = replaceManifestEntry(
       mainApplication.service,
