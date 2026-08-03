@@ -809,7 +809,7 @@ class ExpoMapboxNavigationView(context: Context, appContext: AppContext) :
 
     private fun onRoutesReady(routes: List<NavigationRoute>) {
         mapboxNavigation?.setNavigationRoutes(routes)
-        mapboxNavigation?.startTripSession(withForegroundService = false)
+        mapboxNavigation?.startTripSession(withForegroundService = true)
         navigationCamera.requestNavigationCameraToFollowing(
                 stateTransitionOptions =
                         NavigationCameraTransitionOptions.Builder()
