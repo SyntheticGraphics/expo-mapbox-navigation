@@ -165,10 +165,20 @@ class MainSession : Session() {
 
         GeoDeeplinkNavigateAction(mapboxCarContext).onNewIntent(intent)
 
-        val firstScreenKey = if (PermissionsManager.areLocationPermissionsGranted(carContext)) {
-            MapboxScreenManager.current()?.key ?: MapboxScreen.FREE_DRIVE
-        } else {
-            MapboxScreen.NEEDS_LOCATION_PERMISSION
+        val hasLocationPermission =
+            PermissionsManager.areLocationPermissionsGranted(carContext)
+
+        val currentScreenKey = MapboxScreenManager.current()?.key
+
+        val firstScreenKey = when {
+            !hasLocationPermission ->
+                MapboxScreen.NEEDS_LOCATION_PERMISSION
+
+            currentScreenKey == MapboxScreen.NEEDS_LOCATION_PERMISSION ->
+                MapboxScreen.FREE_DRIVE
+
+            else ->
+                currentScreenKey ?: MapboxScreen.FREE_DRIVE
         }
 
         return mapboxCarContext.mapboxScreenManager.createScreen(firstScreenKey)
