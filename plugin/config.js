@@ -19,6 +19,147 @@ const ANDROID_AUTO_METADATA = [
   "com.google.android.gms.car.application",
   "androidx.car.app.minCarApiLevel",
 ];
+const CARPLAY_APP_DELEGATE_PROTOCOL = "CPApplicationDelegate";
+const CARPLAY_CONNECT_METHOD = "didConnectCarInterfaceController";
+
+const CARPLAY_IMPORTS = [
+  "CarPlay",
+  "MapboxNavigationCore",
+  "MapboxNavigationUIKit",
+  "ExpoMapboxNavigation",
+];
+
+const CARPLAY_APP_DELEGATE_CODE = `
+  // expo-mapbox-navigation: CarPlay lifecycle
+  private var carPlayManager: CarPlayManager?
+
+  public func application(
+    _ application: UIApplication,
+    didConnectCarInterfaceController interfaceController: CPInterfaceController,
+    to window: CPWindow
+  ) {
+    print("[ExpoMapboxNavigation] CarPlay connecting...")
+
+    if carPlayManager == nil {
+      let provider = NavigationProviderManager.shared.getProvider(forSimulation: false)
+      carPlayManager = CarPlayManager(navigationProvider: provider)
+    }
+
+    carPlayManager?.application(
+      application,
+      didConnectCarInterfaceController: interfaceController,
+      to: window
+    )
+
+    CarPlayStateManager.shared.interfaceController = interfaceController
+    CarPlayStateManager.shared.carPlayWindow = window
+    CarPlayStateManager.shared.carPlayManager = carPlayManager
+
+    NotificationCenter.default.post(
+      name: Notification.Name("CarPlayDidConnect"),
+      object: nil,
+      userInfo: ["interfaceController": interfaceController, "window": window]
+    )
+
+    CarPlayStateManager.shared.checkForActiveNavigation()
+    print("[ExpoMapboxNavigation] CarPlay connected successfully")
+  }
+
+  public func application(
+    _ application: UIApplication,
+    didDisconnectCarInterfaceController interfaceController: CPInterfaceController,
+    from window: CPWindow
+  ) {
+    print("[ExpoMapboxNavigation] CarPlay disconnecting...")
+
+    carPlayManager?.application(
+      application,
+      didDisconnectCarInterfaceController: interfaceController,
+      from: window
+    )
+
+    CarPlayStateManager.shared.interfaceController = nil
+    CarPlayStateManager.shared.carPlayWindow = nil
+    CarPlayStateManager.shared.carPlayManager = nil
+
+    NotificationCenter.default.post(
+      name: Notification.Name("CarPlayDidDisconnect"),
+      object: nil
+    )
+
+    print("[ExpoMapboxNavigation] CarPlay disconnected")
+  }
+  // expo-mapbox-navigation: end CarPlay lifecycle
+`;
+
+/**
+ * Adds the legacy CarPlay application lifecycle used by Mapbox Navigation 3.8.
+ *
+ * Expo SDK 55 generates `class AppDelegate: ExpoAppDelegate`, while older Expo
+ * templates generated `public class AppDelegate: ExpoAppDelegate`. The previous
+ * exact string replacement only inserted the methods and never added protocol
+ * conformance on SDK 55, so UIKit could not discover the Objective-C CarPlay
+ * selectors when the icon was opened.
+ */
+const applyCarPlayAppDelegateModifications = (source) => {
+  let contents = source;
+
+  const missingImports = CARPLAY_IMPORTS.filter(
+    (moduleName) =>
+      !new RegExp(
+        `^\\s*(?:internal\\s+)?import\\s+${moduleName}\\s*$`,
+        "m",
+      ).test(contents),
+  );
+
+  if (missingImports.length > 0) {
+    const expoImportPattern = /^(\s*(?:internal\s+)?import\s+Expo\s*)$/m;
+    if (!expoImportPattern.test(contents)) {
+      throw new Error(
+        "expo-mapbox-navigation: Could not find the Expo import in AppDelegate.swift",
+      );
+    }
+
+    contents = contents.replace(
+      expoImportPattern,
+      `$1\n${missingImports.map((moduleName) => `import ${moduleName}`).join("\n")}`,
+    );
+  }
+
+  const appDelegatePattern =
+    /(\bclass\s+AppDelegate\s*:\s*ExpoAppDelegate)([^\{]*)(\{)/;
+  const appDelegateMatch = contents.match(appDelegatePattern);
+
+  if (!appDelegateMatch) {
+    throw new Error(
+      "expo-mapbox-navigation: Could not find the AppDelegate class declaration",
+    );
+  }
+
+  if (!appDelegateMatch[2].includes(CARPLAY_APP_DELEGATE_PROTOCOL)) {
+    contents = contents.replace(
+      appDelegatePattern,
+      (_match, declaration, conformances, openingBrace) =>
+        `${declaration}${conformances.trimEnd()}, ${CARPLAY_APP_DELEGATE_PROTOCOL} ${openingBrace}`,
+    );
+  }
+
+  if (!contents.includes(CARPLAY_CONNECT_METHOD)) {
+    const reactNativeDelegatePattern = /}\s*\n\s*\nclass ReactNativeDelegate:/;
+    if (!reactNativeDelegatePattern.test(contents)) {
+      throw new Error(
+        "expo-mapbox-navigation: Could not find the end of AppDelegate.swift",
+      );
+    }
+
+    contents = contents.replace(
+      reactNativeDelegatePattern,
+      `${CARPLAY_APP_DELEGATE_CODE}}\n\nclass ReactNativeDelegate:`,
+    );
+  }
+
+  return contents;
+};
 
 /**
  * This plugin adds a post-install step to the Podfile that addresses linking issues between pods and xcframeworks.
@@ -325,88 +466,7 @@ const withCarPlayAppDelegate = (config, enableCarPlay) => {
       );
 
       let contents = await fs.readFile(appDelegatePath, "utf8");
-
-      if (contents.includes("CPApplicationDelegate")) {
-        return exportedConfig;
-      }
-
-      const importsToAdd = `
-        import CarPlay
-        import MapboxNavigationCore
-        import MapboxNavigationUIKit
-        import MapboxMaps
-        import ExpoMapboxNavigation
-      `;
-
-      if (contents.includes("import Expo")) {
-        contents = contents.replace(
-          "import Expo",
-          `import Expo\n${importsToAdd}`,
-        );
-      }
-
-      contents = contents.replace(
-        "public class AppDelegate: ExpoAppDelegate {",
-        "public class AppDelegate: ExpoAppDelegate, CPApplicationDelegate {",
-      );
-
-      const carPlayCode = `
-        private var carPlayManager: CarPlayManager?
-                
-        public func application(
-          _ application: UIApplication,
-          didConnectCarInterfaceController interfaceController: CPInterfaceController,
-          to window: CPWindow
-        ) {
-          print("[TAJPM] CarPlay connecting...")
-          
-          if carPlayManager == nil {
-            let provider = NavigationProviderManager.shared.getProvider(forSimulation: false)
-            carPlayManager = CarPlayManager(
-              navigationProvider: provider
-            )
-          }
-          
-          carPlayManager?.application(application, didConnectCarInterfaceController: interfaceController, to: window)
-          
-          CarPlayStateManager.shared.interfaceController = interfaceController
-          CarPlayStateManager.shared.carPlayWindow = window
-          CarPlayStateManager.shared.carPlayManager = carPlayManager
-          
-          NotificationCenter.default.post(
-            name: Notification.Name("CarPlayDidConnect"),
-            object: nil,
-            userInfo: ["interfaceController": interfaceController, "window": window]
-          )
-          
-          print("[TAJPM] CarPlay connected successfully")
-        }
-        
-        public func application(
-          _ application: UIApplication,
-          didDisconnectCarInterfaceController interfaceController: CPInterfaceController,
-          from window: CPWindow
-        ) {
-          print("[TAJPM] CarPlay disconnecting...")
-          
-          carPlayManager?.application(application, didDisconnectCarInterfaceController: interfaceController, from: window)
-
-          CarPlayStateManager.shared.interfaceController = nil
-          CarPlayStateManager.shared.carPlayWindow = nil
-          
-          NotificationCenter.default.post(
-            name: Notification.Name("CarPlayDidDisconnect"),
-            object: nil
-          )
-          
-          print("[TAJPM] CarPlay disconnected")
-        }
-      `;
-
-      contents = contents.replace(
-        /}\s*\n\s*\nclass ReactNativeDelegate:/,
-        `${carPlayCode}}\n\nclass ReactNativeDelegate:`,
-      );
+      contents = applyCarPlayAppDelegateModifications(contents);
 
       await fs.writeFile(appDelegatePath, contents, "utf-8");
 
@@ -439,3 +499,8 @@ const withConfig = (
 };
 
 module.exports = createRunOncePlugin(withConfig, pkg.name, pkg.version);
+
+// Exposed for deterministic config-plugin tests without running an iOS prebuild.
+module.exports._internal = {
+  applyCarPlayAppDelegateModifications,
+};
