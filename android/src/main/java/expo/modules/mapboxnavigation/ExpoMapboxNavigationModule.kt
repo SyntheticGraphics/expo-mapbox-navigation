@@ -11,9 +11,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class ExpoMapboxNavigationModule : Module() {
-  private val activity
-    get() = requireNotNull(appContext.activityProvider?.currentActivity)
-
   @com.mapbox.navigation.base.ExperimentalPreviewMapboxNavigationAPI
   override fun definition() = ModuleDefinition {
     Name("ExpoMapboxNavigation")
@@ -34,13 +31,17 @@ class ExpoMapboxNavigationModule : Module() {
     }
 
     OnActivityEntersForeground {
-      (activity as LifecycleOwner).lifecycleScope.launch(Dispatchers.Main) {
-        if (!MapboxNavigationApp.isSetup()) {
-          MapboxNavigationApp.setup {
-            NavigationOptions.Builder(activity.applicationContext).build()
+      val currentActivity = appContext.activityProvider?.currentActivity
+      if (currentActivity is LifecycleOwner) {
+        val applicationContext = currentActivity.applicationContext
+        currentActivity.lifecycleScope.launch(Dispatchers.Main) {
+          if (!MapboxNavigationApp.isSetup()) {
+            MapboxNavigationApp.setup {
+              NavigationOptions.Builder(applicationContext).build()
+            }
           }
+          MapboxNavigationApp.attach(currentActivity)
         }
-        MapboxNavigationApp.attach(activity as LifecycleOwner)
       }
     }
 

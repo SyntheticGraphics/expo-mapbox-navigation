@@ -33,6 +33,12 @@ object AndroidAutoManager {
         _passengerInfo.value = passengers
     }
 
+    fun resetTripState() {
+        _tripStatus.value = "IDLE"
+        _currentStopInfo.value = null
+        _passengerInfo.value = emptyList()
+    }
+
     fun sendAction(action: String, data: Map<String, Any>? = null) {
         onActionCallback?.invoke(action, data)
     }

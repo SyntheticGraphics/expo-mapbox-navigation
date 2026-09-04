@@ -1,6 +1,7 @@
 package expo.modules.mapboxnavigation
 
 import android.Manifest
+import android.annotation.SuppressLint
 import androidx.car.app.CarContext
 import androidx.car.app.Screen
 import androidx.car.app.model.Action
@@ -8,17 +9,12 @@ import androidx.car.app.model.MessageTemplate
 import androidx.car.app.model.ParkedOnlyOnClickListener
 import androidx.car.app.model.Template
 import com.mapbox.android.core.permissions.PermissionsManager
+import com.mapbox.navigation.core.lifecycle.MapboxNavigationApp
 import com.mapbox.navigation.ui.androidauto.screenmanager.MapboxScreen
 import com.mapbox.navigation.ui.androidauto.screenmanager.MapboxScreenManager
 
-/**
- * Location-permission flow shown on the Android Auto display.
- *
- * Any action that opens a permission dialog on the phone must be disabled while
- * driving. ParkedOnlyOnClickListener delegates that decision to the Android Auto
- * host and prevents the phone interaction until the vehicle is parked.
- */
 class LocationPermissionScreen(carContext: CarContext) : Screen(carContext) {
+    @SuppressLint("MissingPermission")
     override fun onGetTemplate(): Template {
         val grantPermissionAction =
             Action.Builder()
@@ -32,6 +28,8 @@ class LocationPermissionScreen(carContext: CarContext) : Screen(carContext) {
                             ),
                         ) { _, _ ->
                             if (PermissionsManager.areLocationPermissionsGranted(carContext)) {
+                                MapboxNavigationApp.current()
+                                    ?.startTripSession(withForegroundService = true)
                                 MapboxScreenManager.replaceTop(MapboxScreen.FREE_DRIVE)
                             } else {
                                 invalidate()

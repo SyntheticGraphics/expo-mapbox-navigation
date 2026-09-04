@@ -73,6 +73,7 @@ class MainSession : Session() {
     }
 
     init {
+        mapboxCarContext.prepareScreens()
         mapboxCarMap.registerObserver(carMapLoader)
 
         lifecycle.addObserver(object : DefaultLifecycleObserver {
@@ -135,6 +136,8 @@ class MainSession : Session() {
                         if (status == "AT_STOP") {
                             screenManager.push(PassengerActionScreen(carContext))
                         } else if (status == "COMPLETED") {
+                            AndroidAutoManager.resetTripState()
+                            MapboxScreenManager.replaceTop(MapboxScreen.FREE_DRIVE)
                             carContext.finishCarApp()
                         }
                     }
