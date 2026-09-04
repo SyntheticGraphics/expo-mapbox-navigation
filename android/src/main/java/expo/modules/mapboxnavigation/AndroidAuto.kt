@@ -55,8 +55,6 @@ class MainCarAppService : CarAppService() {
 
 @com.mapbox.navigation.base.ExperimentalPreviewMapboxNavigationAPI
 class MainSession : Session() {
-    // Create the MapboxCarContext and MapboxCarMap. You can use them to build
-    // your own customizations.
     private val carMapLoader = MapboxCarMapLoader()
     private val mapboxCarMap = MapboxCarMap()
     private val mapboxCarContext = MapboxCarContext(lifecycle, mapboxCarMap)
@@ -79,7 +77,6 @@ class MainSession : Session() {
 
         lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onCreate(owner: LifecycleOwner) {
-                // 1. Try to recover access token from metadata FIRST
                 if (MapboxOptions.accessToken.isBlank()) {
                     try {
                         val appInfo = carContext.packageManager.getApplicationInfo(carContext.packageName, PackageManager.GET_META_DATA)
@@ -95,7 +92,6 @@ class MainSession : Session() {
                     }
                 }
 
-                // 2. Setup NavigationApp
                 if (!MapboxNavigationApp.isSetup()) {
                     MapboxNavigationApp.setup {
                         NavigationOptions.Builder(carContext)
@@ -106,7 +102,6 @@ class MainSession : Session() {
                 MapboxNavigationApp.registerObserver(tripSessionObserver)
                 MapboxNavigationApp.attach(owner)
 
-                // 3. Setup CarMap
                 mapboxCarMap.setup(
                     carContext,
                     MapInitOptions(
@@ -117,7 +112,6 @@ class MainSession : Session() {
                     )
                 )
 
-                // Customize the MapboxCarOptions.
                 mapboxCarContext.customize {
                     notificationOptions = MapboxCarNotificationOptions.Builder()
                         .startAppService(MainCarAppService::class.java)
@@ -160,7 +154,6 @@ class MainSession : Session() {
     }
 
     override fun onCreateScreen(intent: Intent): Screen {
-        // Prepare screens before creating the first screen
         mapboxCarContext.prepareScreens()
 
         GeoDeeplinkNavigateAction(mapboxCarContext).onNewIntent(intent)
@@ -170,10 +163,11 @@ class MainSession : Session() {
 
         val currentScreenKey = MapboxScreenManager.current()?.key
 
-        val firstScreenKey = when {
-            !hasLocationPermission ->
-                MapboxScreen.NEEDS_LOCATION_PERMISSION
+        if (!hasLocationPermission) {
+            return LocationPermissionScreen(carContext)
+        }
 
+        val firstScreenKey = when {
             currentScreenKey == MapboxScreen.NEEDS_LOCATION_PERMISSION ->
                 MapboxScreen.FREE_DRIVE
 
